@@ -31,25 +31,21 @@ public class EntrezPmidLookupTest {
 
     @Test
     public void testGetEntrezRecordJson() { 
-        EntrezPmidLookup apiService = new EntrezPmidLookup();
+        PmidLookup apiService = new PmidLookup();
         
         String pmid = "29249144";
         
-        JSONObject pmr = apiService.retrievePubmedRecordJson(pmid);
-        assertTrue(pmr.get("source").toString().contains("Proteome"));
+        JSONObject pmr = apiService.retrievePubmedRecordAsJson(pmid);
+        assertTrue(pmr.getString("source").contains("Proteome"));
         
     }
     
     @Test
     public void testGetPubMedRecord() {
-        EntrezPmidLookup pmidLookup = new EntrezPmidLookup();
-        
+        PmidLookup pmidLookup = new PmidLookup();
         String pmid = "29249144";
-
-        PubMedRecord record = pmidLookup.retrievePubmedRecord(pmid);
-        String doi = record.getDoi();
-        
-        assertEquals("https://doi.org/10.1021/acs.jproteome.7b00775", doi);
+        PubMedRecord record = pmidLookup.retrievePubmedRecord(pmid);        
+        assertEquals("https://doi.org/10.1021/acs.jproteome.7b00775", record.getDoi());
         
     }
     

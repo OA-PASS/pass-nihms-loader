@@ -20,8 +20,7 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.function.Consumer;
 
-import org.dataconservancy.pass.client.PassClient;
-import org.dataconservancy.pass.client.fedora.FedoraPassClient;
+import org.dataconservancy.pass.client.nihms.NihmsPassClientService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -42,16 +41,16 @@ public class Main {
         Path directory = null;
         List<Path> filePaths = null;
         try {
-            directory = PathUtils.selectDirectory(args);
+            directory = Utils.selectDirectory(args);
             if (directory == null) {
                 throw new RuntimeException("No directory specified, please indicate which directory using the \"-Ddir\" property");
             }
-            filePaths = PathUtils.getFilePaths(directory);
+            filePaths = Utils.getFilePaths(directory);
         } catch (Exception e) {
             LOG.error("A problem occurred while loading file paths from {}", directory.toString(), e);
         }
         
-        PassClient client = new FedoraPassClient();
+        NihmsPassClientService client = new NihmsPassClientService();
         NihmsLoader loader = new NihmsLoader(client);
         
         Consumer<NihmsPublication> pubConsumer = pub -> loader.transformAndLoad(pub);
@@ -60,7 +59,7 @@ public class Main {
            
             NihmsCsvProcessor processor = new NihmsCsvProcessor(path);
             processor.processCsv(pubConsumer);
-            PathUtils.renameToDone(path);
+            Utils.renameToDone(path);
             
         }
         

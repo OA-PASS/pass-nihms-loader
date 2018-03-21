@@ -54,6 +54,26 @@ public class NihmsCsvProcessor {
     private static final Integer PMID_COLNUM = 0;
 
     /**
+     * Heading used for the PMC ID column in the CSV
+     */
+    private static final String PMCID_HEADING = "PMCID";
+
+    /**
+     * Column number for PMC ID in the CSV
+     */
+    private static final Integer PMCID_COLNUM = 1;
+    
+    /**
+     * Heading used for the NIHMS ID column in the CSV
+     */
+    private static final String NIHMSID_HEADING = "NIHMSID";
+
+    /**
+     * Column number for NIHMS ID in the CSV
+     */
+    private static final Integer NIHMSID_COLNUM = 2;
+
+    /**
      * Heading used for the Grant ID column in the CSV
      */
     private static final String GRANTID_HEADING = "Grant number";
@@ -69,6 +89,8 @@ public class NihmsCsvProcessor {
     private static final Map<Integer, String> EXPECTED_HEADERS = new HashMap<Integer, String>();
     static {
         EXPECTED_HEADERS.put(PMID_COLNUM, PMID_HEADING);
+        EXPECTED_HEADERS.put(PMCID_COLNUM, PMCID_HEADING);
+        EXPECTED_HEADERS.put(NIHMSID_COLNUM, NIHMSID_HEADING);
         EXPECTED_HEADERS.put(GRANTID_COLNUM, GRANTID_HEADING);
     }
     
@@ -138,7 +160,8 @@ public class NihmsCsvProcessor {
         if (row==null) {return;}
         recCount = recCount + 1;  
         try {
-            NihmsPublication pub = new NihmsPublication(row.get(PMID_COLNUM), row.get(GRANTID_COLNUM), status);
+            NihmsPublication pub = 
+                    new NihmsPublication(row.get(PMID_COLNUM), row.get(GRANTID_COLNUM), row.get(NIHMSID_COLNUM), row.get(PMCID_COLNUM), status);
             pubConsumer.accept(pub);                   
         }
         catch (Exception ex) {

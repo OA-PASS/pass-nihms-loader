@@ -16,16 +16,17 @@
 package org.dataconservancy.pass.loader.nihms;
 
 import java.net.URI;
+import java.net.URISyntaxException;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
+import java.util.ArrayList;
+import java.util.List;
 
-import org.dataconservancy.pass.client.PassClient;
-import org.dataconservancy.pass.client.fedora.FedoraPassCrudClient;
-import org.dataconservancy.pass.entrez.EntrezPmidLookup;
+import org.dataconservancy.pass.client.nihms.NihmsPassClientService;
+import org.dataconservancy.pass.entrez.PmidLookup;
 import org.dataconservancy.pass.entrez.PubMedRecord;
-import org.dataconservancy.pass.model.Grant;
+import org.dataconservancy.pass.model.Deposit;
+import org.dataconservancy.pass.model.Submission.Source;
+import org.dataconservancy.pass.model.Submission.Status;
 import org.dataconservancy.pass.model.ext.nihms.NihmsSubmission;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,62 +38,34 @@ import org.slf4j.LoggerFactory;
  */
 public class NihmsLoader {
 
-    private static final Logger LOG = LoggerFactory.getLogger(FedoraPassCrudClient.class);
+    private static final Logger LOG = LoggerFactory.getLogger(NihmsLoader.class);
     
-    private PassClient client;
+    private static final String NIHMS_PASS_URI_KEY = "nihms.pass.uri"; 
+    private static final String PMC_URL_TEMPLATE_KEY = "pmc.url.template"; 
+    private static final String PMC_URL_TEMPLATE_DEFAULT = "https://www.ncbi.nlm.nih.gov/pmc/articles/PMC%s/";
+
+    private NihmsPassClientService clientService;
     
-    private String AWARD_NUMBER_FLD = "awardNumber";
+    private URI nihmsRepositoryUri;
     
-    public NihmsLoader(PassClient client) {
-        this.client = client;
+    private String pmcUrlTemplate;
+
+    public NihmsLoader(NihmsPassClientService clientService) {
+        this.clientService = clientService;
+        try {
+            this.nihmsRepositoryUri = new URI(Utils.getSystemProperty(NIHMS_PASS_URI_KEY, "https://example.com/fedora/repositories/1"));
+        } catch (URISyntaxException e) {
+            throw new RuntimeException("Could not retrieve repository URI for the NIHMS repository. Failed to convert to URI.", e);
+        }
+        this.pmcUrlTemplate = Utils.getSystemProperty(PMC_URL_TEMPLATE_KEY, PMC_URL_TEMPLATE_DEFAULT);
+        
     }
     
+    
     public void transformAndLoad(NihmsPublication pub) {
-        try  {       
-                    
-            URI grantUri = findGrantByAwardNumber(pub.getGrantNumber());
-            if (grantUri==null) {
-                LOG.error("No Grant matching award number \"{}\" was found. Cannot process submission with pmid {}", pub.getGrantNumber(), pub.getPmid());
-                return;
-            }
-
-            String pmid = pub.getPmid();  
-            NihmsSubmission submission = findSubmissionByPmidAndGrant(pmid, grantUri);
-            if (submission!=null) {
-                //already have submission... just need to update status
-                if (submission.getStatus() != pub.getSubmissionStatus()) {
-                    LOG.info("Updating Submission \"{}\". Status changing from {} to {}", 
-                             submission.getId().toString(), submission.getStatus().getValue(), pub.getSubmissionStatus().getValue());
-                    
-                    submission.setStatus(pub.getSubmissionStatus());
-                    client.updateResource(submission);                    
-                }
-                //TODO: figure out if deposit needs to change?
-                return;
-            } 
-            
-            EntrezPmidLookup pmidLookup = new EntrezPmidLookup();
-            PubMedRecord record = pmidLookup.retrievePubmedRecord(pmid);
-            
-            submission = findSubmissionByDoiAndGrant(record.getDoi(), grantUri);
-            if (submission!=null) {
-                //update submission
-                submission.setPmid(pmid);
-                LOG.info("Updating Submission \"{}\". Adding PMID \"{}\"", submission.getId().toString(), pmid);
-                if (submission.getStatus() != pub.getSubmissionStatus()) {
-                    LOG.info("Updating Submission \"{}\". Status changing from {} to {}", 
-                             submission.getId().toString(), submission.getStatus().getValue(), pub.getSubmissionStatus().getValue());
-                    submission.setStatus(pub.getSubmissionStatus());  
-                }
-                client.updateResource(submission);   
-                //TODO: figure out if deposit needs to change?               
-                return;                
-            }
-            
-            //if you're at this point, no submission found yet... need to create it.
-            //TODO: make a "toSubmission(PubMedRecord...);
-            submission = new NihmsSubmission();
-            submission.setDoi(record.getDoi());
+        try  {    
+            NihmsSubmissionDTO dto = transform(pub);            
+            load(dto);
             
         } catch (Exception ex){
             //catch any exceptions and goto next
@@ -100,84 +73,179 @@ public class NihmsLoader {
         }
     }
     
-    /**
-     * Searches for Grant record using awardNumber. Tries this first using the awardNumber as passed in,
-     * then again without spaces.
-     * @param awardNumber
-     * @return
-     */
-    private URI findGrantByAwardNumber(String awardNumber) {
-        if (awardNumber==null || awardNumber.length()==0) {
-            throw new IllegalArgumentException("awardNumber cannot be empty");
-        }
-        URI grantUri = client.findByAttribute(Grant.class, AWARD_NUMBER_FLD, awardNumber);
+    private NihmsSubmissionDTO transform(NihmsPublication pub) {
+        NihmsSubmissionDTO dto = new NihmsSubmissionDTO();
+
+        URI grantUri = clientService.findGrantByAwardNumber(pub.getGrantNumber());
         if (grantUri==null) {
-            //try with no spaces
-            awardNumber = awardNumber.replaceAll("\\s+","");
-            grantUri = client.findByAttribute(Grant.class, AWARD_NUMBER_FLD, awardNumber);
+            throw new RuntimeException(String.format("No Grant matching award number \"%s\" was found. Cannot process submission with pmid %t", pub.getGrantNumber(), pub.getPmid()));
         }
         
-        return grantUri;        
+        String pmid = pub.getPmid();
+        PubMedRecord pubmedRecord = null;
+
+        //this will be all about building up the DTO
+        NihmsSubmissionDTO submissionDTO = new NihmsSubmissionDTO();
+        submissionDTO.setGrantUri(grantUri);
+        
+        PmidLookup pmidLookup = new PmidLookup();
+        pubmedRecord = pmidLookup.retrievePubmedRecord(pmid);
+        
+        NihmsSubmission submission = clientService.findExistingSubmission(grantUri, pmid, pubmedRecord.getDoi());
+
+        if (submission != null) {
+            submission = updateSubmissionFields(submission, pub, grantUri);
+        } else {
+            submission = initiateNewSubmission(pub, pubmedRecord, grantUri);
+        }
+                
+        Deposit deposit = null;
+        if (submission!=null && submission.getId()!=null) {
+            deposit = pickNihmsDeposit(submission);
+        }
+        if (deposit!=null) {
+            deposit = updateDepositFields(deposit, pub);
+        } else if (needDeposit(pub)){
+            deposit = initiateNewDeposit(pub);
+        }
+        submissionDTO.setNihmsSubmission(submission);
+        submissionDTO.setDeposit(deposit);
+        
+        return dto;
+    }
+ 
+    private void load(NihmsSubmissionDTO dto) {
+        Deposit deposit = dto.getDeposit();
+        NihmsSubmission submission = dto.getNihmsSubmission();
+        URI depositUri = deposit.getId();
+        if (deposit!=null) {
+            if (depositUri==null) {
+                depositUri = clientService.createDeposit(deposit);
+            } else {
+                clientService.updateDeposit(deposit);     
+            }
+        }
+
+        List<URI> deposituris = submission.getDeposits();
+        deposituris.add(deposit.getId());
+        submission.setDeposits(deposituris);
+        
+        if (submission!=null) {
+            if (submission.getId()==null) {
+                URI submissionUri = clientService.createNihmsSubmission(submission, dto.getGrantUri());
+                LOG.info("A new submission was created with URI {}", submissionUri);
+            } else {
+                clientService.updateNihmsSubmission(submission);                    
+            }
+        }
+    }
+    
+    
+    private NihmsSubmission initiateNewSubmission(NihmsPublication pub, PubMedRecord pmr, URI grantUri) {
+        LOG.info("No submission found for PMID \"{}\", initiating new Submission record", pub.getPmid());
+        NihmsSubmission submission = new NihmsSubmission();
+
+        submission.setPmid(pub.getPmid());
+        submission.setStatus(pub.getSubmissionStatus());
+        submission.setTitle(pmr.getTitle());
+        submission.setDoi(pmr.getDoi());
+        submission.setVolume(pmr.getVolume());
+        submission.setIssue(pmr.getIssue());
+        List<URI> grants = new ArrayList<URI>();
+        grants.add(grantUri);
+        submission.setGrants(grants);
+        submission.setSource(Source.OTHER);
+        URI journalUri = clientService.findJournalByIssn(pmr.getIssn());
+        if (journalUri == null) {
+            //try ESSN
+            journalUri = clientService.findJournalByIssn(pmr.getEssn());
+        }
+        submission.setJournal(journalUri);
+        
+        return submission;
+    }
+    
+    private NihmsSubmission updateSubmissionFields(NihmsSubmission submission, NihmsPublication pub, URI grantUri) {
+        if (submission.getStatus() != pub.getSubmissionStatus()) {
+            LOG.info("Updating Submission \"{}\". Status changing from {} to {}", 
+                     submission.getId().toString(), submission.getStatus().getValue(), pub.getSubmissionStatus().getValue());
+            submission.setStatus(pub.getSubmissionStatus());
+        }
+        if (submission.getPmid()==null || submission.getPmid().length()==0) {
+            LOG.info("Updating Submission \"{}\". Adding PMID \"{}\"", submission.getId(), pub.getPmid());
+            submission.setPmid(pub.getPmid());
+        }
+        List<URI> grantUris = submission.getGrants();
+        if (!grantUris.contains(grantUri)) {
+            LOG.info("Updating Submission \"{}\". Adding Grant URI \"{}\"", submission.getId(), grantUri);
+            grantUris.add(grantUri);
+            submission.setGrants(grantUris);
+        }
+        return submission;
+    }
+    
+    private Deposit pickNihmsDeposit(NihmsSubmission submission) {
+        //is update... look for deposit
+        List<URI> deposits = submission.getDeposits();
+        for (URI depositUri : deposits) {
+            Deposit deposit = clientService.readDeposit(depositUri);
+            if (deposit.getRepository().equals(nihmsRepositoryUri)) {
+                return deposit;
+            }
+        }
+        return null;
+    }
+    
+    private Deposit updateDepositFields(Deposit deposit, NihmsPublication pub) {
+        String pmcId = pub.getPmcId();
+        String nihmsId = pub.getNihmsId();
+        if (pmcId!=null && pmcId.length()>0) {
+            if (!deposit.getAssignedId().equals(pmcId)) {
+                LOG.info("Updating Deposit \"{}\". Changing AssignedId from \"{}\" to \"{}\"", deposit.getId(), deposit.getAssignedId(), pmcId);
+                deposit.setAssignedId(pmcId);
+                deposit.setAccessUrl(String.format(pmcUrlTemplate, pmcId));
+            }
+        } else if (nihmsId!=null && nihmsId.length()>0){
+            if (!deposit.getAssignedId().equals(pmcId)) {
+                LOG.info("Updating Deposit \"{}\". Changing AssignedId from \"{}\" to \"{}\"", deposit.getId(), deposit.getAssignedId(), nihmsId);
+                deposit.setAssignedId(nihmsId);
+            }
+        }
+        //if (!deposit.getStatus().equals(pub.getDepositStatus())) {
+        //LOG.info("Updating Deposit \"{}\". Changing status from \"{}\" to \"{}\"", deposit.getId(), deposit.getStatus(), pub.getDepositStatus());
+        //TODO: deposit.setStatus(pub.getDepositStatus());
+        //}
+        return deposit;
+    }
+    
+    
+    public boolean needDeposit(NihmsPublication pub) {
+        if (pub.getPmcId()!=null && pub.getPmcId().length()>0) {return true;}
+        if (pub.getNihmsId()!=null && pub.getNihmsId().length()>0) {return true;}
+        if (pub.getSubmissionStatus().equals(Status.COMPLIANT) || pub.getSubmissionStatus().equals(Status.IN_PROGRESS)) {return true;}
+        return false;
     }
 
     
-    /**
-     * Searches for Submission record using pmid and grantUri. This detects whether we are dealing
-     * with a record that was already looked at previously
-     * @param awardNumber
-     * @return
-     */
-    private NihmsSubmission findSubmissionByPmidAndGrant(String pmid, URI grantUri) {
-        if (grantUri==null) {
-            throw new IllegalArgumentException("grantUri cannot be empty");
-        }
-        if (pmid==null || pmid.length()==0) {
-            throw new IllegalArgumentException("pmid cannot be empty");
-        }
-        NihmsSubmission submission = null;
-        Map<String, Object> valuemap = new HashMap<String, Object>();
-        valuemap.put("pmid", pmid);
-        valuemap.put("grant", grantUri.toString());
-        Set<URI> match = client.findAllByAttributes(NihmsSubmission.class, valuemap);
-        if (match!=null && match.size()>1) {
-            throw new RuntimeException(String.format("Search returned %r results for pmid %s and "
-                                                    + "grant %t when only one match should be found. Check the database for issues.", pmid, grantUri.toString()));
-        }
-        if (match!=null && match.size()==1){
-            submission = (NihmsSubmission) client.readResource(match.iterator().next(), NihmsSubmission.class);
-        }
-        
-        return submission;        
-    }
+    private Deposit initiateNewDeposit(NihmsPublication pub) {
+        Deposit deposit = new Deposit();
 
-    
-    /**
-     * Searches for Submission record using pmid and grantUri. This detects whether we are dealing
-     * with a record that was already looked at previously
-     * @param awardNumber
-     * @return
-     */
-    private NihmsSubmission findSubmissionByDoiAndGrant(String doi, URI grantUri) {
-        if (grantUri==null) {
-            throw new IllegalArgumentException("grantUri cannot be empty");
+        LOG.info("NIHMS Deposit record needed for PMID \"{}\", initiating new Deposit record", pub.getPmid());
+        String pmcId = pub.getPmcId();
+        String nihmsId = pub.getNihmsId();
+        if (pmcId!=null && pmcId.length()>0) {
+            deposit.setAssignedId(pmcId);    
+            deposit.setAccessUrl(String.format(pmcUrlTemplate, pmcId));
+        } else if (nihmsId!=null && nihmsId.length()>0){
+            deposit.setAssignedId(nihmsId);
         }
-        if (doi==null || doi.length()==0) {
-            throw new IllegalArgumentException("doi cannot be empty");
-        }
-        NihmsSubmission submission = null;
-        Map<String, Object> valuemap = new HashMap<String, Object>();
-        valuemap.put("doi", doi);
-        valuemap.put("grant", grantUri.toString());
-        Set<URI> match = client.findAllByAttributes(NihmsSubmission.class, valuemap);
-        if (match!=null && match.size()>1) {
-            throw new RuntimeException(String.format("Search returned %r results for pmid %s and "
-                                                    + "grant %t when only one match should be found. Check the database for issues.", doi, grantUri.toString()));
-        }
-        if (match!=null && match.size()==1){
-            submission = (NihmsSubmission) client.readResource(match.iterator().next(), NihmsSubmission.class);
-        }
+        deposit.setRepository(nihmsRepositoryUri);
+        deposit.setRequested(false);
+        //TODO: deposit.setStatus(pub.getDepositStatus());
         
-        return submission;        
+        return deposit;
     }
+    
+    
     
 }

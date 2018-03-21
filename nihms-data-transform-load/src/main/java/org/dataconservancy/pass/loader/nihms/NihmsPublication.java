@@ -33,6 +33,16 @@ public class NihmsPublication {
      * NIHMS submission CSV field "Grant number" 
      */
     private String grantNumber;
+
+    /** 
+     * NIHMS submission CSV field "NIHMSID" 
+     */
+    private String nihmsId;
+
+    /** 
+     * NIHMS submission CSV field "PMCID" 
+     */
+    private String pmcId;
     
     /**
      * Status of NIHMS submission
@@ -43,9 +53,11 @@ public class NihmsPublication {
      * Constructor populates the required fields for a NIHMS publication
      * @param pmid
      * @param grantNumber
+     * @param nihmsId
+     * @param pmcId
      * @param submissionStatus
      */
-    public NihmsPublication(String pmid, String grantNumber, Status submissionStatus) {
+    public NihmsPublication(String pmid, String grantNumber, String nihmsId, String pmcId, Status submissionStatus) {
         if (pmid == null || pmid.length()<3) {
             throw new IllegalArgumentException(String.format("PMID \"%s\" is not valid.", pmid));
         }
@@ -59,6 +71,8 @@ public class NihmsPublication {
         this.pmid = pmid;
         this.grantNumber = grantNumber;
         this.submissionStatus = submissionStatus;
+        this.nihmsId = nihmsId;
+        this.pmcId = pmcId;
         
     }
 
@@ -108,5 +122,37 @@ public class NihmsPublication {
      */
     public void setSubmissionStatus(Status submissionStatus) {
         this.submissionStatus = submissionStatus;
+    }  
+
+    
+    /**
+     * @return the nihmsId
+     */
+    public String getNihmsId() {
+        return nihmsId;
+    }
+
+    
+    /**
+     * @param nihmsId the nihmsId to set
+     */
+    public void setNihmsId(String nihmsId) {
+        this.nihmsId = nihmsId;
+    }  
+
+    
+    /**
+     * @return the pmcId
+     */
+    public String getPmcId() {
+        return pmcId;
+    }
+
+    
+    /**
+     * @param pmcId the pmcId to set
+     */
+    public void setPmcId(String pmcId) {
+        this.pmcId = pmcId;
     }  
 }

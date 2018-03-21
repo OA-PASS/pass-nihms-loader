@@ -7,11 +7,26 @@
     <artifactId>pass-nihms-submission-etl</artifactId>
     <version>0.0.1-SNAPSHOT</version>
   </parent>
-
-  <artifactId>nihms-data-harvest</artifactId>
-  <name>nihms-data-harvest</name>
+  
+  <artifactId>nihms-pass-client</artifactId>
+  <name>nihms-pass-client</name>
 
   <dependencies>
+    <dependency>
+	    <groupId>org.dataconservancy.pass</groupId>
+	    <artifactId>pass-client-api</artifactId>
+	</dependency>
+		
+    <dependency>
+	    <groupId>org.dataconservancy.pass</groupId>
+	    <artifactId>pass-model-nihms</artifactId>
+	</dependency>
+		
+    <dependency>
+	    <groupId>org.dataconservancy.pass</groupId>
+	    <artifactId>pass-fedora-client</artifactId>
+	</dependency>
+	
     <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>

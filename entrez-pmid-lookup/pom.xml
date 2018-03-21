@@ -7,31 +7,34 @@
     <artifactId>pass-nihms-submission-etl</artifactId>
     <version>0.0.1-SNAPSHOT</version>
   </parent>
+  
   <artifactId>entrez-pmid-lookup</artifactId>
   <name>entrez-pmid-lookup</name>
-  <properties>
-    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-  </properties>
+
   <dependencies>
     <dependency>
       <groupId>org.apache.httpcomponents</groupId>
       <artifactId>httpclient</artifactId>
-      <version>${http-client.version}</version>
     </dependency>
+    
     <dependency>
-	    <groupId>org.apache.commons</groupId>
-	    <artifactId>commons-io</artifactId>
-	    <version>${apache-commons-io.version}</version>
-	</dependency>    
+      <groupId>org.apache.commons</groupId>
+      <artifactId>commons-io</artifactId>
+    </dependency>  
+    
     <dependency>
-    	<groupId>org.json</groupId>
-    	<artifactId>json</artifactId>
-    	<version>${org-json.version}</version>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-api</artifactId>
     </dependency>
+    
+    <dependency>
+  	  <groupId>org.json</groupId>
+      <artifactId>json</artifactId>
+    </dependency>
+    
     <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
-      <version>${junit.version}</version>
       <scope>test</scope>
     </dependency>
   </dependencies>

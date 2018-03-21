@@ -27,15 +27,13 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.function.Predicate;
 
-import org.dataconservancy.pass.client.util.ConfigUtil;
-
 import static java.util.stream.Collectors.toList;
 
 /**
  * Utility class to support directory/filepath processing
  * @author Karen Hanson
  */
-public class PathUtils {
+public class Utils {
 
     /**
      * If there is at least one path specified use the first one, but it must be a directory.
@@ -51,7 +49,8 @@ public class PathUtils {
             directory = paths.get(0);
         } else {
             //check sysprop
-            String dir = ConfigUtil.getSystemProperty("dir", null);
+            String dir = getSystemProperty("dir", null);
+            
             if (dir!=null && dir.length()>0) {
                 Path path = Paths.get(dir);
                 directory = (Files.isDirectory(path) ? path : null);
@@ -99,7 +98,7 @@ public class PathUtils {
      */
     private static Predicate<Path> FILTER = path  -> {
         PathMatcher pathFilter = p -> true;
-        String filterProp = ConfigUtil.getSystemProperty("filter", null);
+        String filterProp = getSystemProperty("filter", null);
         if (filterProp != null) {
             pathFilter = FileSystems.getDefault().getPathMatcher("glob:" + filterProp);
         }
@@ -114,5 +113,15 @@ public class PathUtils {
     public static void renameToDone(Path path) {
         final File file = path.toFile();
         file.renameTo(new File(file.getAbsolutePath() + ".done"));
+    }
+    
+    /** 
+     * Retrieve property from environment variable or set to default
+     * @param key
+     * @param defaultValue
+     * @return
+     */
+    public static String getSystemProperty(final String key, final String defaultValue) {
+        return System.getProperty(key, System.getenv().getOrDefault(key, defaultValue));
     }
 }

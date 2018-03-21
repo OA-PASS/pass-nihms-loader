@@ -7,52 +7,46 @@
     <artifactId>pass-nihms-submission-etl</artifactId>
     <version>0.0.1-SNAPSHOT</version>
   </parent>
+  
   <artifactId>nihms-data-transform</artifactId>
   <name>nihms-data-transform</name>
-  <properties>
-    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-  </properties>
+  
   <dependencies>
     <dependency>
 	    <groupId>org.dataconservancy.pass</groupId>
-	    <artifactId>pass-client-api</artifactId>
-	    <version>${project.version}</version>
+	    <artifactId>entrez-pmid-lookup</artifactId>
+	    <version>${project.parent.version}</version>
 	</dependency>
+	
     <dependency>
 	    <groupId>org.dataconservancy.pass</groupId>
 	    <artifactId>pass-model</artifactId>
-	    <version>${project.version}</version>
 	</dependency>
+	
     <dependency>
 	    <groupId>org.dataconservancy.pass</groupId>
 	    <artifactId>pass-model-nihms</artifactId>
-	    <version>${project.version}</version>
 	</dependency>
-    <dependency>
-	    <groupId>org.dataconservancy.pass</groupId>
-	    <artifactId>pass-fedora-client</artifactId>
-	    <version>${project.version}</version>
-	</dependency>
-    <dependency>
-	    <groupId>org.dataconservancy.pass</groupId>
-	    <artifactId>entrez-pmid-lookup</artifactId>
-	    <version>${project.version}</version>
-	</dependency>
+		
     <dependency>
 	    <groupId>org.apache.commons</groupId>
 	    <artifactId>commons-csv</artifactId>
-	    <version>${commons-csv.version}</version>
+	</dependency>	
+	
+    <dependency>
+	    <groupId>org.dataconservancy.pass</groupId>
+	    <artifactId>nihms-pass-client</artifactId>
+	    <version>${project.parent.version}</version>
 	</dependency>
+	
     <dependency>
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-api</artifactId>
-      <version>${slf4j.version}</version>
-      <scope>provided</scope>
     </dependency>
+    
     <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
-      <version>${junit.version}</version>
       <scope>test</scope>
     </dependency>
   </dependencies>
