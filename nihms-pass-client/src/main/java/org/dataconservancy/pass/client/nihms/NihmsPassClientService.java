@@ -18,6 +18,7 @@ package org.dataconservancy.pass.client.nihms;
 import java.net.URI;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -32,7 +33,6 @@ import org.dataconservancy.pass.model.ext.nihms.NihmsSubmission;
 /**
  *
  * @author Karen Hanson
- * @version $Id$
  */
 public class NihmsPassClientService {
 
@@ -217,6 +217,17 @@ public class NihmsPassClientService {
         }
         return (Deposit) client.readResource(depositUri, Deposit.class);
     }
+    
+    
+    public Set<Deposit> readSubmissionDeposits(URI submissionId) {
+        Set<Deposit> deposits = new HashSet<Deposit>();
+        Set<URI> depositIds = client.findAllByAttribute(Deposit.class, "Submission", submissionId);
+        for (URI id : depositIds) { 
+            deposits.add(readDeposit(id));
+        }
+        return deposits;
+    }
+    
     
     public NihmsSubmission readNihmsSubmission(URI submissionUri) {
         if (submissionUri == null) {

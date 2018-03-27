@@ -19,22 +19,25 @@ import java.net.URI;
 import java.net.URISyntaxException;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.dataconservancy.pass.client.nihms.NihmsPassClientService;
 import org.dataconservancy.pass.entrez.PmidLookup;
 import org.dataconservancy.pass.entrez.PubMedRecord;
 import org.dataconservancy.pass.model.Deposit;
+import org.dataconservancy.pass.model.Submission;
 import org.dataconservancy.pass.model.Submission.Source;
-import org.dataconservancy.pass.model.Submission.Status;
 import org.dataconservancy.pass.model.ext.nihms.NihmsSubmission;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static org.dataconservancy.pass.client.util.SubmissionStatusUtil.calcSubmissionStatus;
+
 /**
  *
  * @author Karen Hanson
- * @version $Id$
  */
 public class NihmsLoader {
 
@@ -50,6 +53,10 @@ public class NihmsLoader {
     
     private String pmcUrlTemplate;
 
+    /**
+     * 
+     * @param clientService
+     */
     public NihmsLoader(NihmsPassClientService clientService) {
         this.clientService = clientService;
         try {
@@ -61,7 +68,10 @@ public class NihmsLoader {
         
     }
     
-    
+    /**
+     * 
+     * @param pub
+     */
     public void transformAndLoad(NihmsPublication pub) {
         try  {    
             NihmsSubmissionDTO dto = transform(pub);            
@@ -73,6 +83,11 @@ public class NihmsLoader {
         }
     }
     
+    /**
+     * 
+     * @param pub
+     * @return
+     */
     private NihmsSubmissionDTO transform(NihmsPublication pub) {
         NihmsSubmissionDTO dto = new NihmsSubmissionDTO();
 
@@ -92,28 +107,37 @@ public class NihmsLoader {
         pubmedRecord = pmidLookup.retrievePubmedRecord(pmid);
         
         NihmsSubmission submission = clientService.findExistingSubmission(grantUri, pmid, pubmedRecord.getDoi());
+        Deposit deposit = null;
 
         if (submission != null) {
-            submission = updateSubmissionFields(submission, pub, grantUri);
+            Set<Deposit> deposits = clientService.readSubmissionDeposits(submission.getId());
+            
+            if (submission!=null && submission.getId()!=null) {
+                deposit = pickNihmsDeposit(deposits);
+            }
+            if (deposit!=null) {
+                deposit = updateDepositFields(deposit, pub);
+            } else if (needDeposit(pub)){
+                deposit = initiateNewDeposit(pub);
+            }            
+            
+            submission = updateSubmissionFields(submission, pub, grantUri, deposits);
+            
         } else {
-            submission = initiateNewSubmission(pub, pubmedRecord, grantUri);
-        }
-                
-        Deposit deposit = null;
-        if (submission!=null && submission.getId()!=null) {
-            deposit = pickNihmsDeposit(submission);
-        }
-        if (deposit!=null) {
-            deposit = updateDepositFields(deposit, pub);
-        } else if (needDeposit(pub)){
             deposit = initiateNewDeposit(pub);
+            submission = initiateNewSubmission(pub, pubmedRecord, grantUri, deposit);
         }
+        
         submissionDTO.setNihmsSubmission(submission);
         submissionDTO.setDeposit(deposit);
         
         return dto;
     }
  
+    /**
+     * 
+     * @param dto
+     */
     private void load(NihmsSubmissionDTO dto) {
         Deposit deposit = dto.getDeposit();
         NihmsSubmission submission = dto.getNihmsSubmission();
@@ -140,13 +164,24 @@ public class NihmsLoader {
         }
     }
     
-    
-    private NihmsSubmission initiateNewSubmission(NihmsPublication pub, PubMedRecord pmr, URI grantUri) {
+    /**
+     * 
+     * @param pub
+     * @param pmr
+     * @param grantUri
+     * @param deposit
+     * @return
+     */
+    private NihmsSubmission initiateNewSubmission(NihmsPublication pub, PubMedRecord pmr, URI grantUri, Deposit deposit) {
         LOG.info("No submission found for PMID \"{}\", initiating new Submission record", pub.getPmid());
         NihmsSubmission submission = new NihmsSubmission();
 
+        Set<Deposit> deposits = new HashSet<Deposit>();
+        deposits.add(deposit);
+
         submission.setPmid(pub.getPmid());
-        submission.setStatus(pub.getSubmissionStatus());
+               
+        submission.setStatus(calcSubmissionStatus(deposits, false));
         submission.setTitle(pmr.getTitle());
         submission.setDoi(pmr.getDoi());
         submission.setVolume(pmr.getVolume());
@@ -165,11 +200,22 @@ public class NihmsLoader {
         return submission;
     }
     
-    private NihmsSubmission updateSubmissionFields(NihmsSubmission submission, NihmsPublication pub, URI grantUri) {
-        if (submission.getStatus() != pub.getSubmissionStatus()) {
+    /**
+     * 
+     * @param submission
+     * @param pub
+     * @param grantUri
+     * @param deposits
+     * @return
+     */
+    private NihmsSubmission updateSubmissionFields(NihmsSubmission submission, NihmsPublication pub, URI grantUri, Set<Deposit> deposits) {
+        //TODO: setting boolean for missing deposits to false, but there is really know way to know this at the moment.
+        Submission.Status newStatus = calcSubmissionStatus(deposits, false);
+        
+        if (submission.getStatus() != newStatus) {
             LOG.info("Updating Submission \"{}\". Status changing from {} to {}", 
-                     submission.getId().toString(), submission.getStatus().getValue(), pub.getSubmissionStatus().getValue());
-            submission.setStatus(pub.getSubmissionStatus());
+                     submission.getId().toString(), submission.getStatus().name(), newStatus.name());
+            submission.setStatus(newStatus);
         }
         if (submission.getPmid()==null || submission.getPmid().length()==0) {
             LOG.info("Updating Submission \"{}\". Adding PMID \"{}\"", submission.getId(), pub.getPmid());
@@ -183,12 +229,10 @@ public class NihmsLoader {
         }
         return submission;
     }
-    
-    private Deposit pickNihmsDeposit(NihmsSubmission submission) {
+        
+    private Deposit pickNihmsDeposit(Set<Deposit> deposits) {
         //is update... look for deposit
-        List<URI> deposits = submission.getDeposits();
-        for (URI depositUri : deposits) {
-            Deposit deposit = clientService.readDeposit(depositUri);
+        for (Deposit deposit : deposits) {
             if (deposit.getRepository().equals(nihmsRepositoryUri)) {
                 return deposit;
             }
@@ -211,10 +255,11 @@ public class NihmsLoader {
                 deposit.setAssignedId(nihmsId);
             }
         }
-        //if (!deposit.getStatus().equals(pub.getDepositStatus())) {
-        //LOG.info("Updating Deposit \"{}\". Changing status from \"{}\" to \"{}\"", deposit.getId(), deposit.getStatus(), pub.getDepositStatus());
-        //TODO: deposit.setStatus(pub.getDepositStatus());
-        //}
+        Deposit.Status currDepositStatus = deposit.getStatus();
+        Deposit.Status newDepositStatus = depositStatus(pub, currDepositStatus);
+        if (!currDepositStatus.equals(newDepositStatus)) {
+            LOG.info("Updating Deposit \"{}\". Changing status from \"{}\" to \"{}\"", deposit.getId(), deposit.getStatus(), newDepositStatus);
+        }
         return deposit;
     }
     
@@ -222,7 +267,7 @@ public class NihmsLoader {
     public boolean needDeposit(NihmsPublication pub) {
         if (pub.getPmcId()!=null && pub.getPmcId().length()>0) {return true;}
         if (pub.getNihmsId()!=null && pub.getNihmsId().length()>0) {return true;}
-        if (pub.getSubmissionStatus().equals(Status.COMPLIANT) || pub.getSubmissionStatus().equals(Status.IN_PROGRESS)) {return true;}
+        if (pub.getNihmsStatus().equals(NihmsStatus.COMPLIANT) || pub.getNihmsStatus().equals(NihmsStatus.IN_PROCESS)) {return true;}
         return false;
     }
 
@@ -241,11 +286,36 @@ public class NihmsLoader {
         }
         deposit.setRepository(nihmsRepositoryUri);
         deposit.setRequested(false);
-        //TODO: deposit.setStatus(pub.getDepositStatus());
+        deposit.setStatus(depositStatus(pub, null));
         
         return deposit;
     }
     
+    
+    private Deposit.Status depositStatus(NihmsPublication pub, Deposit.Status currDepositStatus) {
+        if (pub.hasFinalApproval()) {
+            return Deposit.Status.ACCEPTED;
+        }
+        
+        if (pub.isTaggingComplete() || pub.hasInitialApproval()) {
+            return Deposit.Status.IN_PROGRESS;
+        }
+
+        if (pub.isFileDeposited()) {
+            return Deposit.Status.RECEIVED;
+        }
+ 
+        // if the current status implies we are further along than we really are, roll back to submitted and log.
+        if (currDepositStatus.equals(Deposit.Status.IN_PROGRESS) 
+                || currDepositStatus.equals(Deposit.Status.ACCEPTED)
+                || currDepositStatus.equals(Deposit.Status.RECEIVED)) {
+            LOG.info("Deposit.Status was at a later stage than the current NIHMS status would imply. "
+                    + "Rolled back from \"{}\" to \"submitted\" for pmid {}", currDepositStatus.getValue(), pub.getPmid());
+            return Deposit.Status.SUBMITTED;
+        }
+        
+        return currDepositStatus;
+    }
     
     
 }

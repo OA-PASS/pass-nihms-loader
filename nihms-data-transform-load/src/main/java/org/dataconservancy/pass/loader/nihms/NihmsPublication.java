@@ -15,12 +15,9 @@
  */
 package org.dataconservancy.pass.loader.nihms;
 
-import org.dataconservancy.pass.model.Submission.Status;
-
 /**
  * Light weight model for transferring data from CSV files to processing
  * @author Karen Hanson
- * @version $Id$
  */
 public class NihmsPublication {
     
@@ -45,9 +42,29 @@ public class NihmsPublication {
     private String pmcId;
     
     /**
-     * Status of NIHMS submission
+     * Date files were deposited in NIHMS
      */
-    private Status submissionStatus;
+    private String fileDepositedDate;
+    
+    /**
+     * Date of initial NIHMS approval
+     */
+    private String initialApprovalDate;
+    
+    /**
+     * Date tagging of article was complete
+     */
+    private String taggingCompleteDate;
+
+    /**
+     * Date of final approval
+     */
+    private String finalApprovalDate;
+    
+    /**
+     * Status of NIHMS deposit according to spreadsheets
+     */
+    private NihmsStatus nihmsStatus;
     
     /**
      * Constructor populates the required fields for a NIHMS publication
@@ -55,27 +72,67 @@ public class NihmsPublication {
      * @param grantNumber
      * @param nihmsId
      * @param pmcId
-     * @param submissionStatus
+     * @param nihmsStatus
+     * @param fileDepositedDate
+     * @param initialApprovalDate
+     * @param taggingCompleteDate
+     * @param finalApprovalDate
      */
-    public NihmsPublication(String pmid, String grantNumber, String nihmsId, String pmcId, Status submissionStatus) {
+    public NihmsPublication(NihmsStatus nihmsStatus, String pmid, String grantNumber, String nihmsId, String pmcId, 
+                            String fileDepositedDate, String initialApprovalDate, String taggingCompleteDate, String finalApprovalDate) {
         if (pmid == null || pmid.length()<3) {
             throw new IllegalArgumentException(String.format("PMID \"%s\" is not valid.", pmid));
         }
         if (grantNumber == null || grantNumber.length()<3) {
             throw new IllegalArgumentException(String.format("Grant number \"%s\" is not valid.", grantNumber));
         }
-        if (submissionStatus == null) {
-            throw new IllegalArgumentException(String.format("Submission status cannot be null."));
+        if (nihmsStatus == null) {
+            throw new IllegalArgumentException(String.format("NIHMS status cannot be null."));
         }
         
         this.pmid = pmid;
         this.grantNumber = grantNumber;
-        this.submissionStatus = submissionStatus;
+        this.nihmsStatus = nihmsStatus;
         this.nihmsId = nihmsId;
         this.pmcId = pmcId;
-        
+        this.fileDepositedDate = fileDepositedDate;
+        this.initialApprovalDate = initialApprovalDate;
+        this.taggingCompleteDate = taggingCompleteDate;
+        this.finalApprovalDate = finalApprovalDate;        
     }
 
+    /**
+     * True returned if has tagging completion date
+     * @return
+     */
+    public boolean isTaggingComplete() {
+        return taggingCompleteDate!=null && taggingCompleteDate.length()>0;
+    }
+    
+    /**
+     * True returned if has file deposit date
+     * @return
+     */
+    public boolean isFileDeposited() {
+        return fileDepositedDate!=null && fileDepositedDate.length()>0;
+    }
+    
+    /**
+     * True returned if has initial approval date
+     * @return
+     */
+    public boolean hasInitialApproval() {
+        return initialApprovalDate!=null && initialApprovalDate.length()>0;
+    }
+
+    /**
+     * True returned if has final approval date or marked as compliant
+     * @return
+     */
+    public boolean hasFinalApproval() {
+        return (nihmsStatus.equals(NihmsStatus.COMPLIANT)) 
+                || (finalApprovalDate!=null && finalApprovalDate.length()>0);
+    }
     
     /**
      * @return the pmid
@@ -110,18 +167,18 @@ public class NihmsPublication {
 
     
     /**
-     * @return the submissionStatus
+     * @return the nihmsStatus
      */
-    public Status getSubmissionStatus() {
-        return submissionStatus;
+    public NihmsStatus getNihmsStatus() {
+        return nihmsStatus;
     }
 
     
     /**
-     * @param submissionStatus the submissionStatus to set
+     * @param nihmsStatus the nihmsStatus to set
      */
-    public void setSubmissionStatus(Status submissionStatus) {
-        this.submissionStatus = submissionStatus;
+    public void setNihmsStatus(NihmsStatus nihmsStatus) {
+        this.nihmsStatus = nihmsStatus;
     }  
 
     
@@ -154,5 +211,69 @@ public class NihmsPublication {
      */
     public void setPmcId(String pmcId) {
         this.pmcId = pmcId;
+    }
+
+
+    /**
+     * @return the fileDepositedDate
+     */
+    public String getFileDepositedDate() {
+        return fileDepositedDate;
+    }
+
+
+    /**
+     * @param fileDepositedDate the fileDepositedDate to set
+     */
+    public void setFileDepositedDate(String fileDepositedDate) {
+        this.fileDepositedDate = fileDepositedDate;
+    }
+
+
+    /**
+     * @return the initialApprovalDate
+     */
+    public String getInitialApprovalDate() {
+        return initialApprovalDate;
+    }
+
+
+    /**
+     * @param initialApprovalDate the initialApprovalDate to set
+     */
+    public void setInitialApprovalDate(String initialApprovalDate) {
+        this.initialApprovalDate = initialApprovalDate;
+    }
+
+
+    /**
+     * @return the taggingCompleteDate
+     */
+    public String getTaggingCompleteDate() {
+        return taggingCompleteDate;
+    }
+
+
+    /**
+     * @param taggingCompleteDate the taggingCompleteDate to set
+     */
+    public void setTaggingCompleteDate(String taggingCompleteDate) {
+        this.taggingCompleteDate = taggingCompleteDate;
+    }
+
+
+    /**
+     * @return the finalApprovalDate
+     */
+    public String getFinalApprovalDate() {
+        return finalApprovalDate;
+    }
+
+
+    /**
+     * @param finalApprovalDate the finalApprovalDate to set
+     */
+    public void setFinalApprovalDate(String finalApprovalDate) {
+        this.finalApprovalDate = finalApprovalDate;
     }  
 }
