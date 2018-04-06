@@ -52,15 +52,39 @@ public class NihmsCsvProcessorTest {
             count = count + 1;
             if (count == 1) {
                 assertEquals("12345678", pub.getPmid());
-                assertEquals("A12 BC000001", pub.getGrantNumber());                       
+                assertEquals("3453453", pub.getPmcId()); 
+                assertEquals("678678", pub.getNihmsId());
+                assertEquals("A12 BC000001", pub.getGrantNumber());
+                assertEquals("4/4/2016", pub.getFileDepositedDate());
+                assertEquals("4/5/2016", pub.getInitialApprovalDate());
+                assertEquals("4/12/2016", pub.getTaggingCompleteDate());
+                assertEquals("4/12/2016", pub.getFinalApprovalDate());
+                assertTrue(pub.hasFinalApproval());
+                assertTrue(pub.hasInitialApproval());
             }
             if (count == 2) {
                 assertEquals("34567890", pub.getPmid());
-                assertEquals("B23 DE000002", pub.getGrantNumber());                     
+                assertEquals("4564564", pub.getPmcId()); 
+                assertEquals("789789", pub.getNihmsId());
+                assertEquals("B23 DE000002", pub.getGrantNumber());  
+                assertEquals("7/6/2017", pub.getFileDepositedDate());
+                assertEquals("7/6/2017", pub.getInitialApprovalDate());
+                assertEquals("7/14/2017", pub.getTaggingCompleteDate());
+                assertEquals("7/14/2017", pub.getFinalApprovalDate());
+                assertTrue(pub.hasFinalApproval());
+                assertTrue(pub.hasInitialApproval());
             }
             if (count == 3) {
                 assertEquals("34567890", pub.getPmid());
-                assertEquals("B23 DE000002", pub.getGrantNumber());                   
+                assertEquals("4564564", pub.getPmcId()); 
+                assertEquals("789789", pub.getNihmsId());
+                assertEquals("R15 LM239488", pub.getGrantNumber()); 
+                assertEquals("7/6/2017", pub.getFileDepositedDate());
+                assertEquals("7/6/2017", pub.getInitialApprovalDate());
+                assertEquals("7/14/2017", pub.getTaggingCompleteDate());
+                assertEquals("7/14/2017", pub.getFinalApprovalDate());   
+                assertTrue(pub.hasFinalApproval());
+                assertTrue(pub.hasInitialApproval());              
             }
             if (count > 3) {
                 fail("Should have only processed 3 records");
@@ -75,22 +99,25 @@ public class NihmsCsvProcessorTest {
         
     }
     
-    
+    /**
+     * Check an exception is thrown when there is a bad heading in the spreadsheet. We
+     * do not want to process badly formatted data
+     */
     @Test(expected=RuntimeException.class)
     public void testBadHeadingDetection() {
         String filename = "/compliant_BadHeadings.csv";
         String filepath = NihmsCsvProcessorTest.class.getResource(filename).toString();
         new NihmsCsvProcessor(Paths.get(filepath));        
     }
-    
+
+    /**
+     * Check a file path that doesn't exist is provided
+     */
     @Test(expected=RuntimeException.class)
     public void testBadPath() {
         String filename = "/compliant_DoesntExist.csv";
         String filepath = NihmsCsvProcessorTest.class.getResource(filename).toString();
         new NihmsCsvProcessor(Paths.get(filepath));        
     }
-    
-    
-    
     
 }

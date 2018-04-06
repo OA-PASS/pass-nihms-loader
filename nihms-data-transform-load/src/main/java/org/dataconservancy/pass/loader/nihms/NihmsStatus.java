@@ -17,9 +17,8 @@ package org.dataconservancy.pass.loader.nihms;
 
 
 /**
- *
+ * Possible statuses for NIHMS publication records downloaded in spreadsheets
  * @author Karen Hanson
- * @version $Id$
  */
 public enum NihmsStatus {
     COMPLIANT("compliant"),

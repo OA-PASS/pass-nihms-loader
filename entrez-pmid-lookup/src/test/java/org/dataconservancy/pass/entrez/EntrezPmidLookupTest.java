@@ -35,7 +35,7 @@ public class EntrezPmidLookupTest {
         
         String pmid = "29249144";
         
-        JSONObject pmr = apiService.retrievePubmedRecordAsJson(pmid);
+        JSONObject pmr = apiService.retrievePubMedRecordAsJson(pmid);
         assertTrue(pmr.getString("source").contains("Proteome"));
         
     }
@@ -44,7 +44,7 @@ public class EntrezPmidLookupTest {
     public void testGetPubMedRecord() {
         PmidLookup pmidLookup = new PmidLookup();
         String pmid = "29249144";
-        PubMedRecord record = pmidLookup.retrievePubmedRecord(pmid);        
+        PubMedEntrezRecord record = pmidLookup.retrievePubMedRecord(pmid);        
         assertEquals("https://doi.org/10.1021/acs.jproteome.7b00775", record.getDoi());
         
     }

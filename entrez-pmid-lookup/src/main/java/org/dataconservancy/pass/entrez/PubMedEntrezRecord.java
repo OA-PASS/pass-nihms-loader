@@ -23,7 +23,7 @@ import org.json.JSONObject;
  * article record. Using getters you can then pull fields from that JSONObject
  * @author Karen Hanson
  */
-public class PubMedRecord {
+public class PubMedEntrezRecord {
 
     //Various keys to retrieve data from JSON 
     private static final String JSON_PMID_KEY = "uid";
@@ -50,7 +50,7 @@ public class PubMedRecord {
      * https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=pubmed&retmode=json&rettype=full&id=27771272
      * @param entrezJson JSONObject for single PubMed record from Entrez API.
      */
-    public PubMedRecord(JSONObject entrezJson) {
+    public PubMedEntrezRecord(JSONObject entrezJson) {
         if (entrezJson == null) {
             throw new IllegalArgumentException("entrezJson cannot be null");
         }

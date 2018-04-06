@@ -72,19 +72,21 @@ public class PmidLookup {
      * @param pmid
      * @return
      */
-    public PubMedRecord retrievePubmedRecord(String pmid) {
-        JSONObject jsonObj = retrievePubmedRecordAsJson(pmid);
-        return (jsonObj != null ? new PubMedRecord(jsonObj) : null);
+    public PubMedEntrezRecord retrievePubMedRecord(String pmid) {
+        JSONObject jsonObj = retrievePubMedRecordAsJson(pmid);
+        return (jsonObj != null ? new PubMedEntrezRecord(jsonObj) : null);
     }
 
 
     /**
      * Retrieve JSON for PMID record from NIH's Entrez API service. Returns JSON object containing the record
-     * or null if no match found.
+     * or null if no match found. Note that "no match found" means there is no record for that pmid, whereas
+     * a RuntimeException means communication with the service failed, and the client app can decide what 
+     * to do about those.
      * @param pmid
      * @return
      */
-    public JSONObject retrievePubmedRecordAsJson(String pmid) {
+    public JSONObject retrievePubMedRecordAsJson(String pmid) {
         if (pmid == null) {
             throw new IllegalArgumentException("pmid cannot be null");
         }
@@ -127,13 +129,14 @@ public class PmidLookup {
             if (root.has(JSON_ERROR_KEY)) {
                 //if there is an error key, something went wrong. Log error and return null.
                 String error = root.getString(JSON_ERROR_KEY);
-                LOG.info("Could not retrieve PMID {} from Entrez. Error: {}", pmid, error);
+                LOG.warn("Could not retrieve PMID {} from Entrez. Error: {}", pmid, error);
                 root = null;
             }
             
         } catch (URISyntaxException e) {
             throw new RuntimeException("Could not convert convert path to URL: " + path, e);
         } catch (IllegalStateException | IOException e) {
+            LOG.warn("Could not retrieve PMID {} from Entrez. Error: {}", pmid, e);
             throw new RuntimeException("Error while retrieving content from Entrez at URL: " + path, e);
         } finally {
             try {

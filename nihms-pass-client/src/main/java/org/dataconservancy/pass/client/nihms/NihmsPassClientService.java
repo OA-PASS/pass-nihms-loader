@@ -28,6 +28,7 @@ import org.dataconservancy.pass.client.fedora.FedoraPassClient;
 import org.dataconservancy.pass.model.Deposit;
 import org.dataconservancy.pass.model.Grant;
 import org.dataconservancy.pass.model.Journal;
+import org.dataconservancy.pass.model.PassEntityType;
 import org.dataconservancy.pass.model.ext.nihms.NihmsSubmission;
 
 /**
@@ -73,16 +74,25 @@ public class NihmsPassClientService {
 
     
     public NihmsSubmission findExistingSubmission(URI grantUri, String pmid, String doi) {
-        NihmsSubmission submission = findSubmissionByPmidAndGrant(pmid, grantUri);
-        if (submission != null) {
-            return submission;
+        if (grantUri == null) {
+            throw new RuntimeException("Grant URI cannot be null when searching for existing Submission.");
+        }        
+        if (pmid == null) {
+            throw new RuntimeException("PMID cannot be null when searching for existing Submission.");
         }
-
-        submission = this.findSubmissionByDoiAndGrant(doi, grantUri);
+        
+        NihmsSubmission submission = findSubmissionByArticleIdAndGrant(pmid, grantUri, "pmid");
         if (submission != null) {
             return submission;
         }
         
+        if (doi != null) {
+            submission = this.findSubmissionByArticleIdAndGrant(doi, grantUri, "doi");
+            if (submission != null) {
+                return submission;
+            }
+        }
+            
         Grant grant = this.readGrant(grantUri);
         URI grantPi = grant.getPi();
         submission = findSubmissionByPmidAndPi(pmid, grantPi);
@@ -107,29 +117,33 @@ public class NihmsPassClientService {
         return client.findAllByAttribute(NihmsSubmission.class, "doi", doi);
     }
     
-    /**
-     * Searches for Submission record using pmid and grantUri. This detects whether we are dealing
-     * with a record that was already looked at previously
-     * @param awardNumber
+    /**     * 
+     * Searches for Submission record using articleId and grantUri. This detects whether we are dealing
+     * with a record that was already looked at previously. 
+     * @param articleId
+     * @param grantUri
+     * @param idFieldName the name of the field on the Submission model that will be matched e.g. "pmid" or "doi"
      * @return
      */
-    public NihmsSubmission findSubmissionByPmidAndGrant(String pmid, URI grantUri) {
+    public NihmsSubmission findSubmissionByArticleIdAndGrant(String articleId, URI grantUri, String idFieldName) {
         if (grantUri==null) {
             throw new IllegalArgumentException("grantUri cannot be empty");
         }
-        if (pmid==null || pmid.length()==0) {
-            throw new IllegalArgumentException("pmid cannot be empty");
+        if (articleId==null || articleId.length()==0) {
+            throw new IllegalArgumentException("article ID cannot be empty");
         }
         Map<String, Object> valuemap = new HashMap<String, Object>();
-        valuemap.put("pmid", pmid);
+        valuemap.put(idFieldName, articleId);
         valuemap.put("grant", grantUri.toString());
         Set<URI> match = client.findAllByAttributes(NihmsSubmission.class, valuemap);
         if (match!=null && match.size()>1) {
-            throw new RuntimeException(String.format("Search returned %r results for pmid %s and "
-                                                    + "grant %t when only one match should be found. Check the database for issues.", pmid, grantUri.toString()));
+            throw new RuntimeException(String.format(
+                   "Search returned %s results for %s %s and grant %s when only one match should be found. Check the database for issues.", 
+                   match.size(), idFieldName, articleId, grantUri.toString())
+                   );
         }
         if (match!=null && match.size()==1){
-            return this.readNihmsSubmission(match.iterator().next());
+            return readNihmsSubmission(match.iterator().next());
         }        
         
         return null;        
@@ -148,47 +162,21 @@ public class NihmsPassClientService {
     }
     
     
-    private NihmsSubmission pickSubmissionWithSamePi(Set<URI> uris, URI pi) {
-        for (URI uri : uris) {
-            NihmsSubmission submission = readNihmsSubmission(uri);
-            if (submission!=null) {
-                URI piUri = readGrant(submission.getGrants().get(0)).getPi();
-                if (piUri.equals(pi)) {
-                    return submission;
+    private NihmsSubmission pickSubmissionWithSamePi(Set<URI> submissionUris, URI pi) {
+        if (submissionUris!=null) {
+            for (URI uri : submissionUris) {
+                NihmsSubmission submission = readNihmsSubmission(uri);
+                if (submission!=null) {
+                    URI piUri = readGrant(submission.getGrants().get(0)).getPi();
+                    if (piUri.equals(pi)) {
+                        return submission;
+                    }
                 }
             }
         }
         return null;   
     }
     
-    
-    /**
-     * Searches for Submission record using pmid and grantUri. This detects whether we are dealing
-     * with a record that was already looked at previously
-     * @param awardNumber
-     * @return
-     */
-    public NihmsSubmission findSubmissionByDoiAndGrant(String doi, URI grantUri) {
-        if (grantUri==null) {
-            throw new IllegalArgumentException("grantUri cannot be empty");
-        }
-        if (doi==null || doi.length()==0) {
-            throw new IllegalArgumentException("doi cannot be empty");
-        }
-        Map<String, Object> valuemap = new HashMap<String, Object>();
-        valuemap.put("doi", doi);
-        valuemap.put("grant", grantUri.toString());
-        Set<URI> match = client.findAllByAttributes(NihmsSubmission.class, valuemap);
-        if (match!=null && match.size()>1) {
-            throw new RuntimeException(String.format("Search returned %r results for pmid %s and "
-                                                    + "grant %t when only one match should be found. Check the database for issues.", doi, grantUri.toString()));
-        }
-        if (match!=null && match.size()==1){
-            return this.readNihmsSubmission(match.iterator().next());
-        }        
-        
-        return null;            
-    }
     
     /**
      * Look up Journal URI using ISSN
@@ -203,37 +191,62 @@ public class NihmsPassClientService {
     }
     
     
+    /**
+     * Retrieve full grant record from database
+     * @param grantUri
+     * @return Grant if found, or null if not found
+     */
     public Grant readGrant(URI grantUri){
         if (grantUri == null) {
             throw new IllegalArgumentException("grantUri cannot be empty");            
         }
-        return (Grant) client.readResource(grantUri, Grant.class);
+        Object grantObj = client.readResource(grantUri, Grant.class);
+        return (grantObj!=null ? (Grant) grantObj : null);
     }
 
-    
+
+    /**
+     * Retrieve full deposit record from database
+     * @param depositUri
+     * @return
+     */
     public Deposit readDeposit(URI depositUri){
         if (depositUri == null) {
             throw new IllegalArgumentException("depositUri cannot be empty");            
         }
-        return (Deposit) client.readResource(depositUri, Deposit.class);
+        Object depositObj = client.readResource(depositUri, Deposit.class);
+        return (depositObj!=null ? (Deposit) depositObj : null);
     }
     
     
-    public Set<Deposit> readSubmissionDeposits(URI submissionId) {
-        Set<Deposit> deposits = new HashSet<Deposit>();
-        Set<URI> depositIds = client.findAllByAttribute(Deposit.class, "Submission", submissionId);
-        for (URI id : depositIds) { 
-            deposits.add(readDeposit(id));
-        }
-        return deposits;
-    }
-    
-    
+    /**
+     * Retrieve full NIHMS Submission record
+     * @param submissionUri
+     * @return matching submission or null if none found
+     */
     public NihmsSubmission readNihmsSubmission(URI submissionUri) {
         if (submissionUri == null) {
             throw new IllegalArgumentException("submissionUri cannot be empty");            
         }
-        return (NihmsSubmission) client.readResource(submissionUri, NihmsSubmission.class);
+        Object submissionObj = client.readResource(submissionUri, NihmsSubmission.class);
+        return (submissionObj!=null ? (NihmsSubmission) submissionObj : null); 
+    }
+    
+
+    /**
+     * Retrieve list of deposits associated with a submission or empty Set if none
+     * @param submissionId
+     * @return
+     */
+    public Set<Deposit> readSubmissionDeposits(URI submissionId) {
+        Set<Deposit> deposits = new HashSet<Deposit>();
+        Set<URI> depositIds = client.findAllByAttribute(Deposit.class, PassEntityType.SUBMISSION.getName(), submissionId);
+        if (depositIds!=null) {
+            for (URI id : depositIds) { 
+                deposits.add(readDeposit(id));
+            }
+        }
+        return deposits;
     }
 
     /**
@@ -263,7 +276,7 @@ public class NihmsPassClientService {
     /**
      * @param grant
      */
-    public void updateResource(Grant grant) {
+    public void updateGrant(Grant grant) {
         Grant origGrant = (Grant) client.readResource(grant.getId(), Grant.class);
         if (!origGrant.equals(grant)){
             client.updateResource(grant);

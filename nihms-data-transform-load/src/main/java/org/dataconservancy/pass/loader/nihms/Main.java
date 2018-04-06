@@ -15,12 +15,13 @@
  */
 package org.dataconservancy.pass.loader.nihms;
 
+import java.io.File;
+
 import java.nio.file.Path;
 
 import java.util.List;
 import java.util.function.Consumer;
 
-import org.dataconservancy.pass.client.nihms.NihmsPassClientService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -41,28 +42,38 @@ public class Main {
         Path directory = null;
         List<Path> filePaths = null;
         try {
-            directory = Utils.selectDirectory(args);
+            directory = FileUtil.selectDirectory(args);
             if (directory == null) {
-                throw new RuntimeException("No directory specified, please indicate which directory using the \"-Ddir\" property");
+                File downloadDir = new File(System.getProperty("user.dir") + "/downloads");
+                directory = downloadDir.toPath();
+                LOG.warn("No directory indicated either as an argument or using the \"dir\" system property, defaulting to %s", downloadDir.getAbsolutePath());
             }
-            filePaths = Utils.getFilePaths(directory);
+            filePaths = FileUtil.getFilePaths(directory);
         } catch (Exception e) {
             LOG.error("A problem occurred while loading file paths from {}", directory.toString(), e);
         }
         
-        NihmsPassClientService client = new NihmsPassClientService();
-        NihmsLoader loader = new NihmsLoader(client);
-        
-        Consumer<NihmsPublication> pubConsumer = pub -> loader.transformAndLoad(pub);
+        Consumer<NihmsPublication> pubConsumer = pub -> transformAndLoad(pub);
 
-        for (Path path : filePaths) {
-           
+        for (Path path : filePaths) {           
             NihmsCsvProcessor processor = new NihmsCsvProcessor(path);
             processor.processCsv(pubConsumer);
-            Utils.renameToDone(path);
-            
+            FileUtil.renameToDone(path);            
         }
-        
     }
+    
+    private static void transformAndLoad(NihmsPublication pub) {
+        try  {    
+            SubmissionTransformer transformer = new SubmissionTransformer();
+            NihmsSubmissionDTO transformedRecord = transformer.transform(pub);
+            SubmissionLoader loader = new SubmissionLoader();
+            loader.load(transformedRecord);
+            
+        } catch (Exception ex){
+            //catch any exceptions and goto next
+            LOG.error("Error during transform and load of record with pmid {}.", pub.getPmid());            
+        }
+    }
+    
     
 }
