@@ -19,6 +19,7 @@
   	<slf4j.version>1.7.25</slf4j.version>
   	<pass-client.version>0.0.1-SNAPSHOT</pass-client.version>
     <logback.version>1.2.3</logback.version>
+    <selenium.version>3.11.0</selenium.version>
     <maven-compiler-plugin.version>3.6.1</maven-compiler-plugin.version>
     <maven-surefire-plugin.version>2.20.1</maven-surefire-plugin.version>
     <maven-source-plugin.version>3.0.1</maven-source-plugin.version>
@@ -121,6 +122,18 @@
 	    <artifactId>commons-csv</artifactId>
 	    <version>${commons-csv.version}</version>
 	  </dependency>
+	    
+      <dependency>
+        <groupId>org.seleniumhq.selenium</groupId>
+        <artifactId>selenium-firefox-driver</artifactId>
+        <version>${selenium.version}</version>
+      </dependency>
+    
+      <dependency>
+        <groupId>org.seleniumhq.selenium</groupId>
+        <artifactId>selenium-java</artifactId>
+        <version>${selenium.version}</version>
+      </dependency>
 	
       <dependency>
         <groupId>junit</groupId>
