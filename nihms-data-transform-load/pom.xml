@@ -8,16 +8,16 @@
     <version>0.0.1-SNAPSHOT</version>
   </parent>
   
-  <artifactId>nihms-data-transform</artifactId>
-  <name>nihms-data-transform</name>
-  
+  <artifactId>nihms-data-transform-load</artifactId>
+  <name>nihms-data-transform-load</name>
+
   <dependencies>
     <dependency>
 	    <groupId>org.dataconservancy.pass</groupId>
 	    <artifactId>entrez-pmid-lookup</artifactId>
 	    <version>${project.parent.version}</version>
 	</dependency>
-	
+		
     <dependency>
 	    <groupId>org.dataconservancy.pass</groupId>
 	    <artifactId>pass-model</artifactId>

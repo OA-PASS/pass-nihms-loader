@@ -74,10 +74,14 @@ public class SubmissionLoader {
         if (submissionUri==null) {
             submissionUri = clientService.createNihmsSubmission(submission, dto.getGrantUri());
             LOG.info("A new submission was created with URI {}", submissionUri);
+            //now that it has been created, read back the latest version... 
+            //TODO:fix this when bidirectional linking is done, will no longer be needed.
+            submission = clientService.readNihmsSubmission(submissionUri); 
+            
         } else {
-            //create needs so be done in order to process deposits, so it will be done right away, but to 
-            //updating twice, set a flag and update everything at the end. This can be rearranged once we 
-            //remove circular references
+            //create needs so be done in order to process deposits, so it will be done right away, but to avoid
+            //updating twice, set a flag and update everything at the end. 
+            //TODO:fix this when bidirectional linking is done, will no longer be needed.
             updateNihmsSubmission = true;               
         }
         

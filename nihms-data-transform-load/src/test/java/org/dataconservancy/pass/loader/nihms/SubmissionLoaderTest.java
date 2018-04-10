@@ -150,6 +150,7 @@ public class SubmissionLoaderTest {
         //ensure calls to mock create methods return a URI
         URI submissionUri = new URI(sSubmissionUri);
         when(clientServiceMock.createNihmsSubmission(submission, grantUri)).thenReturn(submissionUri);
+        when(clientServiceMock.readNihmsSubmission(Mockito.anyObject())).thenReturn(submission);
         URI depositUri = new URI(sDepositUri);        
         when(clientServiceMock.createDeposit(Mockito.anyObject())).thenReturn(depositUri);
         

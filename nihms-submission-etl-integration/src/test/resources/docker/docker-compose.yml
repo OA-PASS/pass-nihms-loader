@@ -1,0 +1,16 @@
+version: '2'
+
+services:
+
+  fcrepo:
+    image: oapass/fcrepo
+    environment:
+      FCREPO_HOST: "${FCREPO_HOST}"
+      FCREPO_PORT : "${FCREPO_PORT}"
+      COMPACTION_URI: "https://oa-pass.github.io/pass-data-model/src/main/resources/context.jsonld"
+      COMPACTION_PRELOAD_URI_PASS_STATIC: "https://oa-pass.github.io/pass-data-model/src/main/resources/context.jsonld"
+      COMPACTION_PRELOAD_FILE_PASS_STATIC: "${COMPACTION_PRELOAD_FILE_PASS_STATIC:-/usr/local/tomcat/lib/context.jsonld}"
+    ports: 
+      - "${FCREPO_PORT}:${FCREPO_PORT}"
+    volumes:
+      - "mnt/:/mnt"

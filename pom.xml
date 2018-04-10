@@ -10,6 +10,17 @@
   <name>pass-nihms-submission-etl</name>
 
   <properties>
+    <scp.port>22</scp.port>
+
+    <build-helper-maven-plugin.version>3.0.0</build-helper-maven-plugin.version>
+    <docker-maven-plugin.version>0.24.0</docker-maven-plugin.version>
+    <maven-compiler-plugin.version>3.6.1</maven-compiler-plugin.version>
+    <maven-failsafe-plugin.version>2.21.0</maven-failsafe-plugin.version>
+    <maven-surefire-plugin.version>2.20.1</maven-surefire-plugin.version>
+    <maven-source-plugin.version>3.0.1</maven-source-plugin.version>
+    <maven.deploy.plugin.version>2.8.2</maven.deploy.plugin.version>
+    <maven.wagon.ssh.version>2.10</maven.wagon.ssh.version>
+  
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <junit.version>4.12</junit.version>
     <http-client.version>4.3.6</http-client.version>
@@ -20,9 +31,6 @@
   	<pass-client.version>0.0.1-SNAPSHOT</pass-client.version>
     <logback.version>1.2.3</logback.version>
     <selenium.version>3.11.0</selenium.version>
-    <maven-compiler-plugin.version>3.6.1</maven-compiler-plugin.version>
-    <maven-surefire-plugin.version>2.20.1</maven-surefire-plugin.version>
-    <maven-source-plugin.version>3.0.1</maven-source-plugin.version>
     <mockito.version>1.9.5</mockito.version>
   </properties>
   
@@ -31,6 +39,8 @@
     <module>nihms-data-transform-load</module>
     <module>entrez-pmid-lookup</module>
     <module>nihms-pass-client</module>
+    <module>nihms-submission-etl-integration</module>
+    <module>nihms-submission-etl-cli</module>
   </modules>
 
   <build>    
@@ -62,6 +72,24 @@
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-surefire-plugin</artifactId>
           <version>${maven-surefire-plugin.version}</version>
+        </plugin>
+        
+        <plugin>
+          <groupId>io.fabric8</groupId>
+          <artifactId>docker-maven-plugin</artifactId>
+          <version>${docker-maven-plugin.version}</version>
+        </plugin>
+        
+        <plugin>
+          <groupId>org.codehaus.mojo</groupId>
+          <artifactId>build-helper-maven-plugin</artifactId>
+          <version>${build-helper-maven-plugin.version}</version>
+        </plugin>
+        
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-failsafe-plugin</artifactId>
+          <version>${maven-failsafe-plugin.version}</version>
         </plugin>
         
       </plugins>

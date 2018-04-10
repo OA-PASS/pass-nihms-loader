@@ -120,7 +120,7 @@ public class NihmsCsvProcessor {
                 LOG.error("File at path \"{}\" has unrecognized headers", filePath.toString());  
                 throw new RuntimeException("The headers were not as expected, aborting import");                  
             }
-                        
+            
             csvRecords.forEachRemaining(row -> consumeRow(row, pubConsumer));
             
         } catch (Exception e){ 
@@ -140,8 +140,9 @@ public class NihmsCsvProcessor {
     private void consumeRow(CSVRecord row, Consumer<NihmsPublication> pubConsumer) {
         if (row==null) {return;}
         recCount = recCount + 1;  
+        NihmsPublication pub = null;
         try {
-            NihmsPublication pub = new NihmsPublication(status, row.get(PMID_COLNUM), row.get(GRANTID_COLNUM), row.get(NIHMSID_COLNUM), 
+            pub = new NihmsPublication(status, row.get(PMID_COLNUM), row.get(GRANTID_COLNUM), row.get(NIHMSID_COLNUM), 
                                          row.get(PMCID_COLNUM), row.get(FILEDEPOSIT_COLNUM), row.get(INITIALAPPROVAL_COLNUM), 
                                          row.get(TAGGINGCOMPLETE_COLNUM), row.get(FINALAPPROVAL_COLNUM));
 
@@ -151,7 +152,7 @@ public class NihmsCsvProcessor {
         }
         catch (Exception ex) {
             failCount = failCount + 1;
-            LOG.error("A problem occurred while processing csv row {}. The record was not imported successfully.", recCount, ex);
+            LOG.error("A problem occurred while processing csv row {} with pmid {}. The record was not imported successfully.", recCount, pub.getPmid(), ex);
         }
     }
     
@@ -168,7 +169,7 @@ public class NihmsCsvProcessor {
         for (Entry<Integer, String> header : EXPECTED_HEADERS.entrySet()) {
             Integer colNum = header.getKey();
             String expectedName = header.getValue();
-            if (!headers.get(colNum).equals(expectedName)) {
+            if (!headers.get(colNum).toLowerCase().equals(expectedName.toLowerCase())) {
                 valid = false;
                 LOG.error("Expected header \"{}\" but was \"{}\"", expectedName, headers.get(colNum));  
             }            

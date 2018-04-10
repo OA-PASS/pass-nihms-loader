@@ -168,7 +168,6 @@ public class SubmissionTransformer {
             
         } else {
             if (needNihmsDeposit(pub)) {
-                LOG.info("NIHMS Deposit record needed for PMID \"{}\", initiating new Deposit record", pub.getPmid());
                 nihmsDeposit = initiateNewDeposit(pub);
             }
             submission = initiateNewSubmission(pubmedRecord, grantUri, nihmsDeposit);
