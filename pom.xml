@@ -187,4 +187,58 @@
       
     </dependencies>
   </dependencyManagement>
+  
+  <repositories>
+  
+    <repository>
+      <id>dc.public.releases</id>
+      <name>Data Conservancy Public Maven Repository (releases)</name>
+      <layout>default</layout>
+      <url>http://maven.dataconservancy.org/public/releases/</url>
+      <releases>
+        <enabled>true</enabled>
+      </releases>
+      <snapshots>
+        <enabled>false</enabled>
+      </snapshots>
+    </repository>
+    
+    <repository>
+      <id>dc.public.snapshots</id>
+      <name>Data Conservancy Public Maven Repository (snapshots)</name>
+      <layout>default</layout>
+      <url>http://maven.dataconservancy.org/public/snapshots/</url>
+      <releases>
+        <enabled>false</enabled>
+      </releases>
+      <snapshots>
+        <enabled>true</enabled>
+      </snapshots>
+    </repository>
+    
+    <repository>
+      <id>dc.private.releases</id>
+      <name>Data Conservancy Private Maven Repository (releases)</name>
+      <url>scp://maven.dataconservancy.org:${scp.port}/data/maven-dc/private/releases/</url>
+      <releases>
+        <enabled>true</enabled>
+      </releases>
+      <snapshots>
+        <enabled>false</enabled>
+      </snapshots>
+    </repository>
+    <repository>
+      <id>dc.private.snapshots</id>
+      <name>Data Conservancy Private Maven Repository (snapshots)</name>
+      <url>scp://maven.dataconservancy.org:${scp.port}/data/maven-dc/private/snapshots/</url>
+      <releases>
+        <enabled>false</enabled>
+      </releases>
+      <snapshots>
+        <enabled>true</enabled>
+      </snapshots>
+    </repository>
+  </repositories>
+  
+  
 </project>
