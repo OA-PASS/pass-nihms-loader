@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.dataconservancy.pass.loader.nihms;
+package org.dataconservancy.pass.loader.nihms.util;
 
 import java.io.File;
 import java.io.IOException;
@@ -28,6 +28,8 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+
+import org.dataconservancy.pass.loader.nihms.util.FileUtil;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -103,7 +105,7 @@ public class FileUtilTest {
         File file1 = File.createTempFile("file1", ".csv", createdFolder);
         File file2 = File.createTempFile("file2", ".csv", createdFolder);
         File file3 = File.createTempFile("file3", ".csv", createdFolder);
-        List<Path> paths = FileUtil.getFilePaths(createdFolder.toPath());
+        List<Path> paths = FileUtil.getCsvFilePaths(createdFolder.toPath());
         assertEquals(file1.toPath(), paths.get(0));
         assertEquals(file2.toPath(), paths.get(1));
         assertEquals(file3.toPath(), paths.get(2));
@@ -119,7 +121,7 @@ public class FileUtilTest {
         File.createTempFile("file2", ".csv.done", createdFolder);
         File file2 = File.createTempFile("file3", ".csv", createdFolder);
         File.createTempFile("file4", ".docx", createdFolder);
-        List<Path> paths = FileUtil.getFilePaths(createdFolder.toPath());
+        List<Path> paths = FileUtil.getCsvFilePaths(createdFolder.toPath());
         assertEquals(file1.toPath(), paths.get(0));
         assertEquals(file2.toPath(), paths.get(1));
         assertEquals(2, paths.size());
@@ -140,7 +142,7 @@ public class FileUtilTest {
         File.createTempFile("file4-02-09-2018-", ".csv", createdFolder);
         File.createTempFile("file5-02-09-2018-", ".csv", createdFolder);
         System.setProperty("filter", "*02-08-2018*");
-        List<Path> paths = FileUtil.getFilePaths(createdFolder.toPath());
+        List<Path> paths = FileUtil.getCsvFilePaths(createdFolder.toPath());
         assertEquals(file1.toPath(), paths.get(0));
         assertEquals(file2.toPath(), paths.get(1));
         assertEquals(2, paths.size());        

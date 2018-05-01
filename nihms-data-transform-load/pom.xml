@@ -17,6 +17,12 @@
 	    <artifactId>entrez-pmid-lookup</artifactId>
 	    <version>${project.parent.version}</version>
 	</dependency>
+	
+    <dependency>
+	  <groupId>org.dataconservancy.pass</groupId>
+	  <artifactId>nihms-submission-etl-util</artifactId>
+	  <version>${project.parent.version}</version>
+	</dependency>   
 		
     <dependency>
 	    <groupId>org.dataconservancy.pass</groupId>

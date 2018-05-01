@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.dataconservancy.pass.loader.nihms;
+package org.dataconservancy.pass.loader.nihms.util;
 
 import java.io.File;
 
@@ -27,8 +27,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.function.Predicate;
 
-import org.dataconservancy.pass.client.util.ConfigUtil;
-
 import static java.util.stream.Collectors.toList;
 
 /**
@@ -37,6 +35,29 @@ import static java.util.stream.Collectors.toList;
  */
 public class FileUtil {
 
+    
+    private static final String NIHMS_CONFIG_DIR_PROPKEY = "nihms.config.dir";
+    private static final String NIHMS_DOWNLOADS_DIR_PROPKEY = "nihms.downloads.dir";
+    private static final String USER_DIR_PROPKEY = "user.dir";
+    
+    private static final String DEFAULT_DOWNLOAD_FOLDER = "/downloads";
+    
+    
+    public static Path selectDownloadDirectory() {
+        String currDirectoryPath = System.getProperty(USER_DIR_PROPKEY);
+        String downloadFilePath = ConfigUtil.getSystemProperty(NIHMS_DOWNLOADS_DIR_PROPKEY, currDirectoryPath + DEFAULT_DOWNLOAD_FOLDER);
+        Path downloadDirectory = new File(downloadFilePath).toPath();
+        return downloadDirectory;
+    }
+        
+    
+    public static Path selectConfigDirectory() {
+        String currDirectoryPath = System.getProperty(USER_DIR_PROPKEY);
+        String configFilePath = ConfigUtil.getSystemProperty(NIHMS_CONFIG_DIR_PROPKEY, currDirectoryPath);
+        Path configDirectory = new File(configFilePath).toPath();
+        return configDirectory;
+    }
+    
     /**
      * If there is at least one path specified use the first one, but it must be a directory.
      * Additional directories will be ignored. If no directory was provided as an argument, 
@@ -79,15 +100,16 @@ public class FileUtil {
      * @param directory
      * @return
      */
-    public static List<Path> getFilePaths(Path directory) {
+    public static List<Path> getCsvFilePaths(Path directory) {
         List<Path> filepaths = null;
         try {
             filepaths = Files.list(directory)
+                .filter(FILTER_GENERAL)
                 .filter(FILTER_CSV)
                 .map(Path::toAbsolutePath)
                 .collect(toList());
         } catch (Exception ex){
-            throw new RuntimeException("A problem occurred while loading file paths from " + directory.toString());
+            throw new RuntimeException("A problem occurred while loading CSV file paths from " + directory.toString());
         }
         return filepaths;
     }
@@ -97,15 +119,23 @@ public class FileUtil {
      * Calculate filter based on whether there is a filter system property, and whether the file is appended 
      * with ".done" which signals the file was processed
      */
-    private static Predicate<Path> FILTER_CSV = path  -> {
+    private static Predicate<Path> FILTER_GENERAL = path  -> {
         PathMatcher pathFilter = p -> true;
         String filterProp = ConfigUtil.getSystemProperty("filter", null);
         if (filterProp != null) {
             pathFilter = FileSystems.getDefault().getPathMatcher("glob:" + filterProp);
         }
-        return pathFilter.matches(path.getFileName()) && path.getFileName().toString().endsWith(".csv");
+        return pathFilter.matches(path.getFileName());
     };
-    
+
+
+    /** 
+     * Calculate filter based on whether there is a filter system property, and whether the file is appended 
+     * with ".done" which signals the file was processed
+     */
+    private static Predicate<Path> FILTER_CSV = path  -> {
+        return path.getFileName().toString().endsWith(".csv");
+    };
 
     /**
      * Rename file to append ".done" once it has been processed
