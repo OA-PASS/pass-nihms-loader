@@ -18,9 +18,7 @@ package org.dataconservancy.pass.loader.nihms;
 import java.net.URI;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 import org.junit.Before;
 import org.junit.Rule;
@@ -30,17 +28,20 @@ import org.junit.rules.ExpectedException;
 import org.dataconservancy.pass.client.nihms.NihmsPassClientService;
 import org.dataconservancy.pass.entrez.PmidLookup;
 import org.dataconservancy.pass.entrez.PubMedEntrezRecord;
-import org.dataconservancy.pass.model.Deposit;
+import org.dataconservancy.pass.model.Grant;
+import org.dataconservancy.pass.model.Publication;
+import org.dataconservancy.pass.model.RepositoryCopy.CopyStatus;
+import org.dataconservancy.pass.model.Submission;
 import org.dataconservancy.pass.model.Submission.Source;
-import org.dataconservancy.pass.model.Submission.Status;
-import org.dataconservancy.pass.model.ext.nihms.NihmsSubmission;
+import org.joda.time.DateTime;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 
 import static org.junit.Assert.assertEquals;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.when;
 
 /**
@@ -51,11 +52,10 @@ public class SubmissionTransformerTest {
 
     private static final String sGrantUri = "https://example.com/fedora/grants/1";
     private static final String sSubmissionUri = "https://example.com/fedora/submissions/1";
-    private static final String sRepositoryUri = "https://example.com/fedora/repositories/1";
     private static final String sNihmsRepositoryUri = "https://example.com/fedora/repositories/2";
-    private static final String sDepositUri = "https://example.com/fedora/deposits/1";
-    private static final String sNihmsDepositUri = "https://example.com/fedora/deposits/2";
     private static final String sJournalUri = "https://example.com/fedora/journals/1";
+    private static final String sPublicationUri = "https://example.com/fedora/publications/1";
+    private static final String sUserUri = "https://example.com/fedora/users/1";
     
     private static final String nihmsId = "abcdefg";
     private static final String pmcId = "9876543";
@@ -68,6 +68,7 @@ public class SubmissionTransformerTest {
     private static final String title = "Test Title";
     private static final String issue = "3";
     private static final String volume = "5";
+    private static final String awardNumber = "AB 12345";
     
     private static final String pmcIdTemplateUrl = "https://example.com/pmc/pmc%s";
     
@@ -94,233 +95,177 @@ public class SubmissionTransformerTest {
     }
     
     /**
-     * Tests the scenario where there is no current Submission in PASS for the article, and no 
-     * need for a new deposit. The returned object should have a Submission object without a URI
-     * and no Deposit records.
+     * Tests the scenario where there is no current Publication or Submission in PASS for the article, and no 
+     * need for a new RepositoryCopy. The returned object should have a Publication and Submission object without 
+     * a URI and no RepositoryCopies
      */
     @Test
-    public void testTransformNewSubmissionNoDeposit() throws Exception {
-       
+    public void testTransformNewPubNewSubNoRepoCopy() throws Exception {
         NihmsPublication pub = newTestPub();
-        pub.setNihmsStatus(NihmsStatus.NON_COMPLIANT); //is the only status that won't initiate a deposit
+        pub.setNihmsStatus(NihmsStatus.NON_COMPLIANT);
+        
+        Grant grant = newTestGrant();
         
         //Mocking that we have a valid grant URI, PMID, and DOI to use.
-        when(clientServiceMock.findGrantByAwardNumber(Mockito.anyString())).thenReturn(new URI(sGrantUri));
+        when(clientServiceMock.findGrantByAwardNumber(awardNumber)).thenReturn(grant.getId());
+        when(clientServiceMock.readGrant(grant.getId())).thenReturn(grant);
+        when(clientServiceMock.findPublicationById(pmid, doi)).thenReturn(null);
+        when(clientServiceMock.findJournalByIssn(issn)).thenReturn(new URI(sJournalUri));
+        
         when(pmidLookupMock.retrievePubMedRecord(Mockito.anyString())).thenReturn(pubMedRecordMock);
 
         pmrMockWhenValues();
         
-        //when it looks for existing submission, return null... we want it to initiate a new one.
-        when(clientServiceMock.findExistingSubmission(Mockito.any(), Mockito.any(), Mockito.any())).thenReturn(null);
-        when(clientServiceMock.findJournalByIssn(Mockito.any())).thenReturn(new URI(sJournalUri));
-        
         NihmsSubmissionDTO dto = transformer.transform(pub);        
 
-        verify(clientServiceMock, never()).readSubmissionDeposits(Mockito.anyObject()); 
-
         checkPmrValues(dto);
-        assertEquals(null, dto.getNihmsSubmission().getId());
-        assertEquals(Status.NON_COMPLIANT_NOT_STARTED, dto.getNihmsSubmission().getStatus());
-        assertEquals(0, dto.getNihmsSubmission().getDeposits().size());
-        assertEquals(null, dto.getDeposit());
+        assertEquals(TransformUtil.getNihmsRepositoryUri(), dto.getSubmission().getRepositories().get(0));
+        assertNull(dto.getPublication().getId());
+        assertNull(dto.getSubmission().getId());
+        assertNull(dto.getRepositoryCopy());
     }
     
-    /**
-     * Tests the scenario where there is no current Submission in PASS for the article, and a 
-     * new Deposit is needed. The returned object should have a Submission object without a URI
-     * and a Deposit object without a URI
-     */
-    @Test
-    public void testTransformNewSubmissionWithNewInProcessDeposit() throws Exception {
-       
-        NihmsPublication pub = newTestPub();
-        pub.setNihmsStatus(NihmsStatus.IN_PROCESS); //status will initiate a Deposit
-        pub.setNihmsId(nihmsId);
-        pub.setFileDepositedDate(depositDate);
-        pub.setInitialApprovalDate(depositDate);
-        pub.setTaggingCompleteDate(depositDate);
-        
-        //Mocking that we have a valid grant URI, PMID, and DOI to use.
-        when(clientServiceMock.findGrantByAwardNumber(Mockito.anyString())).thenReturn(new URI(sGrantUri));
-        when(pmidLookupMock.retrievePubMedRecord(Mockito.anyString())).thenReturn(pubMedRecordMock);
-
-        pmrMockWhenValues();
-        
-        //when it looks for existing submission, return null... we want it to initiate a new one.
-        when(clientServiceMock.findExistingSubmission(Mockito.any(), Mockito.any(), Mockito.any())).thenReturn(null);
-        when(clientServiceMock.findJournalByIssn(Mockito.any())).thenReturn(new URI(sJournalUri));
-        
-        NihmsSubmissionDTO dto = transformer.transform(pub);        
-
-        verify(clientServiceMock, never()).readSubmissionDeposits(Mockito.anyObject()); 
-
-        checkPmrValues(dto);
-        assertEquals(null, dto.getNihmsSubmission().getId());
-        assertEquals(Status.COMPLIANT_IN_PROGRESS, dto.getNihmsSubmission().getStatus());
-        assertEquals(0, dto.getNihmsSubmission().getDeposits().size());
-        
-        assertEquals(null, dto.getDeposit().getId());
-        assertEquals(nihmsId, dto.getDeposit().getAssignedId());
-        assertEquals(sNihmsRepositoryUri, dto.getDeposit().getRepository().toString());
-        assertEquals(null, dto.getDeposit().getAccessUrl());
-        assertEquals(false, dto.getDeposit().getRequested());
-        assertEquals(false, dto.getDeposit().getUserActionRequired());
-        assertEquals(Deposit.Status.IN_PROGRESS, dto.getDeposit().getStatus());
-    }
-
     
     /**
-     * Tests the scenario where there is no current Submission in PASS for the article, and a 
-     * new Deposit is needed. The returned object should have a Submission object without a URI
-     * and a Deposit object without a URI
+     * Tests the scenario where there is no current Publication or Submission in PASS for the article, and a 
+     * new RepositoryCopy is needed. The returned object should have a Publication, Submission and RepositoryCopy objects
+     * all without a URI
      */
     @Test
-    public void testTransformNewSubmissionWithNewCompliantDeposit() throws Exception {
-       
-        NihmsPublication pub = newTestPub();
-        pub.setNihmsStatus(NihmsStatus.COMPLIANT); //status will initiate a Deposit
-        pub.setNihmsId(nihmsId);
-        pub.setFileDepositedDate(depositDate);
-        pub.setFileDepositedDate(depositDate);
-        pub.setPmcId(pmcId);
-        
-        //Mocking that we have a valid grant URI, PMID, and DOI to use.
-        when(clientServiceMock.findGrantByAwardNumber(Mockito.anyString())).thenReturn(new URI(sGrantUri));
-        when(pmidLookupMock.retrievePubMedRecord(Mockito.anyString())).thenReturn(pubMedRecordMock);
-
-        pmrMockWhenValues();
-        
-        //when it looks for existing submission, return null... we want it to initiate a new one.
-        when(clientServiceMock.findExistingSubmission(Mockito.any(), Mockito.any(), Mockito.any())).thenReturn(null);
-        when(clientServiceMock.findJournalByIssn(Mockito.any())).thenReturn(new URI(sJournalUri));
-        
-        NihmsSubmissionDTO dto = transformer.transform(pub);        
-
-        verify(clientServiceMock, never()).readSubmissionDeposits(Mockito.anyObject()); 
-
-        checkPmrValues(dto);
-        assertEquals(null, dto.getNihmsSubmission().getId());
-        assertEquals(Status.COMPLIANT_COMPLETE, dto.getNihmsSubmission().getStatus());
-        assertEquals(0, dto.getNihmsSubmission().getDeposits().size());
-        
-        assertEquals(null, dto.getDeposit().getId());
-        assertEquals(pmcId, dto.getDeposit().getAssignedId());
-        assertEquals(sNihmsRepositoryUri, dto.getDeposit().getRepository().toString());
-        assertEquals(String.format(pmcIdTemplateUrl, pmcId), dto.getDeposit().getAccessUrl());
-        assertEquals(false, dto.getDeposit().getRequested());
-        assertEquals(false, dto.getDeposit().getUserActionRequired());
-        assertEquals(Deposit.Status.ACCEPTED, dto.getDeposit().getStatus());
-        
-    }
-    
-
-    /**
-     * Tests the scenario where there is already a Submission in PASS for the article, but 
-     * a new Deposit is needed. The returned object should have a Submission object with a URI
-     * and a Deposit object without a URI
-     */
-    @Test
-    public void testTransformUpdateSubmissionWithNewInProcessDeposit() throws Exception {
+    public void testTransformNewPubNewSubNewRepoCopy() throws Exception {
        
         NihmsPublication pub = newTestPub();
         pub.setNihmsStatus(NihmsStatus.IN_PROCESS); 
         pub.setNihmsId(nihmsId);
         pub.setFileDepositedDate(depositDate);
-        
-        //Mocking that we have a valid grant URI, PMID, and DOI to use.
-        when(clientServiceMock.findGrantByAwardNumber(Mockito.anyString())).thenReturn(new URI(sGrantUri));
-        when(pmidLookupMock.retrievePubMedRecord(Mockito.anyString())).thenReturn(pubMedRecordMock);
+        pub.setInitialApprovalDate(depositDate);
+        pub.setTaggingCompleteDate(depositDate);
+
+        Grant grant = newTestGrant();
+        when(clientServiceMock.findGrantByAwardNumber(awardNumber)).thenReturn(grant.getId());
+        when(clientServiceMock.readGrant(grant.getId())).thenReturn(grant);
+        when(clientServiceMock.findPublicationById(pmid, doi)).thenReturn(null);
+        when(clientServiceMock.findJournalByIssn(issn)).thenReturn(new URI(sJournalUri));
+        when(pmidLookupMock.retrievePubMedRecord(pmid)).thenReturn(pubMedRecordMock);
+
         pmrMockWhenValues();
-        
-        NihmsSubmission submission = newTestNihmsSubmission();
-        
-        //when it looks for existing submission, return the test submission... we want it to update this.
-        when(clientServiceMock.findExistingSubmission(Mockito.any(), Mockito.any(), Mockito.any())).thenReturn(submission);
-        
-        //lets add an existing deposit, but not the one that is for this repository
-        Set<Deposit> deposits = new HashSet<Deposit>();
-        Deposit deposit = new Deposit();
-        deposit.setId(new URI(sDepositUri));
-        deposit.setRepository(new URI(sRepositoryUri));
-        deposit.setStatus(Deposit.Status.IN_PROGRESS);
-        deposit.setSubmission(submission.getId());
-        deposits.add(deposit);
-        when(clientServiceMock.readSubmissionDeposits(Mockito.any())).thenReturn(deposits);
         
         NihmsSubmissionDTO dto = transformer.transform(pub);        
 
-        //check the values in the dto
         checkPmrValues(dto);
-        assertEquals(submission, dto.getNihmsSubmission()); //submission shouldn't have needed changes
+        assertEquals(TransformUtil.getNihmsRepositoryUri(), dto.getSubmission().getRepositories().get(0));
         
-        assertEquals(null, dto.getDeposit().getId()); //because it should be new
-        assertEquals(nihmsId, dto.getDeposit().getAssignedId());
-        assertEquals(sNihmsRepositoryUri, dto.getDeposit().getRepository().toString());
-        assertEquals(null, dto.getDeposit().getAccessUrl());
-        assertEquals(false, dto.getDeposit().getRequested());
-        assertEquals(false, dto.getDeposit().getUserActionRequired());
-        assertEquals(Deposit.Status.RECEIVED, dto.getDeposit().getStatus());
+        assertNull(dto.getPublication().getId());
+        assertNull(dto.getSubmission().getId());
+        assertNull(dto.getRepositoryCopy().getId());
+        assertEquals(CopyStatus.IN_PROGRESS, dto.getRepositoryCopy().getCopyStatus());
+        assertEquals(nihmsId, dto.getRepositoryCopy().getExternalIds().get(0));
+        assertEquals(true, dto.getSubmission().getSubmitted());
+        assertNotNull(dto.getSubmission().getSubmittedDate());
+        
+    }
+    
+
+    /**
+     * Tests the scenario where there is already a Publication and Submission in PASS for the article, 
+     * but now there is a compliant repo copy
+     */
+    @Test
+    public void testTransformUpdatePubUpdateSubNewCompliantRepoCopy() throws Exception {
+        
+        NihmsPublication pub = newTestPub();
+        pub.setNihmsStatus(NihmsStatus.COMPLIANT); 
+        pub.setNihmsId(nihmsId);
+        pub.setFileDepositedDate(depositDate);
+        pub.setInitialApprovalDate(depositDate);
+        pub.setTaggingCompleteDate(depositDate);
+        pub.setPmcId(pmcId);
+        
+        Publication publication = newTestPublication();
+        Submission submission = newTestSubmission();
+        
+        List<Submission> submissions = new ArrayList<Submission>();
+        submissions.add(submission);
+        
+        Grant grant = newTestGrant();
+        when(clientServiceMock.findGrantByAwardNumber(awardNumber)).thenReturn(grant.getId());
+        when(clientServiceMock.readGrant(grant.getId())).thenReturn(grant);
+        
+        when(clientServiceMock.findPublicationById(pmid, doi)).thenReturn(publication);
+        when(clientServiceMock.findSubmissionsByPublicationAndUserId(publication.getId(), grant.getPi())).thenReturn(submissions);
+        
+        when(pmidLookupMock.retrievePubMedRecord(pmid)).thenReturn(pubMedRecordMock);
+
+        pmrMockWhenValues();
+        
+        NihmsSubmissionDTO dto = transformer.transform(pub);
+
+        checkPmrValues(dto);
+        assertEquals(TransformUtil.getNihmsRepositoryUri(), dto.getSubmission().getRepositories().get(0));
+        
+        assertEquals(true, dto.getSubmission().getSubmitted());
+        assertNotNull(dto.getSubmission().getSubmittedDate());
+        
+        assertNull(dto.getRepositoryCopy().getId());
+        assertEquals(CopyStatus.COMPLETE, dto.getRepositoryCopy().getCopyStatus());
+        assertTrue(dto.getRepositoryCopy().getExternalIds().contains(nihmsId));
+        assertTrue(dto.getRepositoryCopy().getExternalIds().contains(pmcId));
+        assertEquals(2, dto.getRepositoryCopy().getExternalIds().size());
         
     }
 
 
     /**
-     * Tests the scenario where there is already a Submission in PASS for the article, and 
-     * a Deposit for NIHMS, but the status has changed. The returned object should have a 
-     * Submission object with a URI and a Deposit object with a URI
+     * Tests the scenario where there is already a Publication and Submission in PASS for the article, 
+     * The grant and repo were not included on the Submission, but it is not submitted so we can add it.
      */
     @Test
-    public void testTransformUpdateSubmissionWithUpdateDeposit() throws Exception {
-       
-        NihmsPublication pub = newTestPub(); //compliant by default
-        pub.setNihmsId(nihmsId);
-        pub.setFileDepositedDate(depositDate);
-        pub.setInitialApprovalDate(depositDate);
-        pub.setTaggingCompleteDate(depositDate);
-        pub.setFinalApprovalDate(depositDate);
-        pub.setPmcId(pmcId);
+    public void testTransformUpdatePubAddGrantRepoToSubNoRepoCopy() throws Exception {
         
-        //Mocking that we have a valid grant URI, PMID, and DOI to use.
-        when(clientServiceMock.findGrantByAwardNumber(Mockito.anyString())).thenReturn(new URI(sGrantUri));
-        when(pmidLookupMock.retrievePubMedRecord(Mockito.anyString())).thenReturn(pubMedRecordMock);
+        NihmsPublication pub = newTestPub();
+        
+        Publication publication = newTestPublication();
+        
+        Submission submission = newTestSubmission();
+        submission.setSubmitted(false);
+        submission.setSubmittedDate(null);
+        //no repos or grants yet
+        submission.setRepositories(new ArrayList<URI>());
+        submission.setGrants(new ArrayList<URI>());
+        
+        List<Submission> submissions = new ArrayList<Submission>();
+        submissions.add(submission);
+        
+        Grant grant = newTestGrant();
+        when(clientServiceMock.findGrantByAwardNumber(awardNumber)).thenReturn(grant.getId());
+        when(clientServiceMock.readGrant(grant.getId())).thenReturn(grant);
+        
+        when(clientServiceMock.findPublicationById(pmid, doi)).thenReturn(publication);
+        when(clientServiceMock.findSubmissionsByPublicationAndUserId(publication.getId(), grant.getPi())).thenReturn(submissions);
+        
+        when(pmidLookupMock.retrievePubMedRecord(pmid)).thenReturn(pubMedRecordMock);
+
         pmrMockWhenValues();
         
-        NihmsSubmission submission = newTestNihmsSubmission(); //compliant-in-progress by default
-        
-        //when it looks for existing submission, return the test submission... we want it to update this.
-        when(clientServiceMock.findExistingSubmission(Mockito.any(), Mockito.any(), Mockito.any())).thenReturn(submission);
-        
-        //lets add an existing deposit, but not the one that is for this repository
-        Set<Deposit> deposits = new HashSet<Deposit>();
-        Deposit deposit = new Deposit();
-        deposit.setId(new URI(sDepositUri));
-        deposit.setRepository(new URI(sRepositoryUri));
-        deposit.setStatus(Deposit.Status.IN_PROGRESS);
-        deposit.setSubmission(submission.getId());
-        deposits.add(deposit);
-        
-        Deposit deposit2 = new Deposit();
-        deposit2.setId(new URI(sNihmsDepositUri));
-        deposit2.setRepository(new URI(sNihmsRepositoryUri));
-        deposit2.setStatus(Deposit.Status.RECEIVED);
-        deposit2.setSubmission(submission.getId());
-        deposits.add(deposit2);
-        when(clientServiceMock.readSubmissionDeposits(Mockito.any())).thenReturn(deposits);
-        
-        NihmsSubmissionDTO dto = transformer.transform(pub);        
+        NihmsSubmissionDTO dto = transformer.transform(pub);
 
-        //check the values in the dto
         checkPmrValues(dto);
-        assertEquals(submission, dto.getNihmsSubmission()); //submission shouldn't have needed changes
         
-        assertEquals(sNihmsDepositUri, dto.getDeposit().getId().toString()); //because it should be new
-        assertEquals(pmcId, dto.getDeposit().getAssignedId());
-        assertEquals(sNihmsRepositoryUri, dto.getDeposit().getRepository().toString());
-        assertEquals(String.format(pmcIdTemplateUrl, pmcId), dto.getDeposit().getAccessUrl());
-        assertEquals(Deposit.Status.ACCEPTED, dto.getDeposit().getStatus());
+        assertEquals(false, dto.getSubmission().getSubmitted());
+        assertTrue(!dto.getSubmission().getRepositories().contains(TransformUtil.getNihmsRepositoryUri()));
+        assertTrue(dto.getSubmission().getGrants().contains(grant.getId()));
+        
+        assertNull(dto.getSubmission().getSubmittedDate());
+        
+        assertNull(dto.getRepositoryCopy());
+        
         
     }
     
+    
+    /**
+     * Makes sure exception is thrown if no matching grant is found for the Award Number
+     */
     @Test
     public void testTransformNoMatchingGrantThrowsException() {
 
@@ -334,15 +279,18 @@ public class SubmissionTransformerTest {
         
     }
     
+    
     private void checkPmrValues(NihmsSubmissionDTO dto) {
-        assertEquals(sGrantUri,dto.getGrantUri().toString());
-        assertEquals(title, dto.getNihmsSubmission().getTitle());
-        assertEquals(volume, dto.getNihmsSubmission().getVolume());
-        assertEquals(issue, dto.getNihmsSubmission().getIssue());
-        assertEquals(pmid, dto.getNihmsSubmission().getPmid());
-        assertEquals(doi, dto.getNihmsSubmission().getDoi());
-        assertEquals(Source.OTHER, dto.getNihmsSubmission().getSource());
-        assertEquals(sJournalUri, dto.getNihmsSubmission().getJournal().toString());     
+        assertEquals(title, dto.getPublication().getTitle());
+        assertEquals(volume, dto.getPublication().getVolume());
+        assertEquals(issue, dto.getPublication().getIssue());
+        assertEquals(pmid, dto.getPublication().getPmid());
+        assertEquals(doi, dto.getPublication().getDoi());
+        assertEquals(sJournalUri, dto.getPublication().getJournal().toString());   
+        
+        assertEquals(sGrantUri, dto.getSubmission().getGrants().get(0).toString());
+        assertEquals(Source.OTHER, dto.getSubmission().getSource());  
+        assertEquals(sUserUri, dto.getSubmission().getUser().toString());
     }
 
         
@@ -356,32 +304,54 @@ public class SubmissionTransformerTest {
         when(pubMedRecordMock.getTitle()).thenReturn(title);        
     }
     
+    private Grant newTestGrant() throws Exception {
+        Grant grant = new Grant();
+        grant.setId(new URI(sGrantUri));
+        grant.setPi(new URI(sUserUri));
+        grant.setAwardNumber(awardNumber);
+        return grant;
+    }
     
-    private NihmsSubmission newTestNihmsSubmission() throws Exception {
-        NihmsSubmission submission = new NihmsSubmission();
+    private Publication newTestPublication() throws Exception {
+        Publication publication = new Publication();
+        publication.setId(new URI(sPublicationUri));
+        publication.setPmid(pmid);
+        publication.setDoi(doi);
+        publication.setTitle(title);
+        publication.setJournal(new URI(sJournalUri));
+        publication.setVolume(volume);
+        publication.setIssue(issue);
+        return publication;
+    }
+    
+    
+    private Submission newTestSubmission() throws Exception {
+        Submission submission = new Submission();
         
         submission.setId(new URI(sSubmissionUri));
-        submission.setPmid(pmid);
-        submission.setDoi(doi);
-        submission.setTitle(title);
-        submission.setJournal(new URI(sJournalUri));
-        submission.setVolume(volume);
-        submission.setIssue(issue);
+        
         List<URI> grants = new ArrayList<URI>();
         grants.add(new URI(sGrantUri));
+        
         submission.setGrants(grants);
         submission.setSource(Source.OTHER);
-        submission.setStatus(Status.COMPLIANT_IN_PROGRESS);
-        List<URI> deposits = new ArrayList<URI>();
-        deposits.add(new URI(sDepositUri));
-        submission.setDeposits(deposits);
+        submission.setSubmitted(true);
+        submission.setSubmittedDate(new DateTime());
+        submission.setPublication(new URI(sPublicationUri));
+        
+        List<URI> repositories = new ArrayList<URI>();
+        repositories.add(TransformUtil.getNihmsRepositoryUri());
+        
+        submission.setRepositories(repositories);
+        
+        submission.setUser(new URI(sUserUri));        
         
         return submission;
     }
     
     
     private NihmsPublication newTestPub() {
-        return new NihmsPublication(NihmsStatus.COMPLIANT, pmid, "AB 12345", null, null, null, null, null, null);
+        return new NihmsPublication(NihmsStatus.COMPLIANT, pmid, awardNumber, null, null, null, null, null, null);
     }
     
 }

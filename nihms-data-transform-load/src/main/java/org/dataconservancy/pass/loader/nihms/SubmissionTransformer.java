@@ -16,30 +16,25 @@
 package org.dataconservancy.pass.loader.nihms;
 
 import java.net.URI;
-import java.net.URISyntaxException;
 
 import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
-import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.dataconservancy.pass.client.nihms.NihmsPassClientService;
 import org.dataconservancy.pass.client.util.ConfigUtil;
 import org.dataconservancy.pass.entrez.PmidLookup;
 import org.dataconservancy.pass.entrez.PubMedEntrezRecord;
-import org.dataconservancy.pass.model.Deposit;
+import org.dataconservancy.pass.model.Grant;
+import org.dataconservancy.pass.model.Publication;
+import org.dataconservancy.pass.model.RepositoryCopy;
 import org.dataconservancy.pass.model.Submission;
 import org.dataconservancy.pass.model.Submission.Source;
-import org.dataconservancy.pass.model.ext.nihms.NihmsSubmission;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.dataconservancy.pass.client.util.SubmissionStatusUtil.calcSubmissionStatus;
-import static org.dataconservancy.pass.loader.nihms.TransformUtil.calcDepositStatus;
-import static org.dataconservancy.pass.loader.nihms.TransformUtil.isDepositUserActionRequired;
-import static org.dataconservancy.pass.loader.nihms.TransformUtil.needNihmsDeposit;
-import static org.dataconservancy.pass.loader.nihms.TransformUtil.pickDepositForRepository;
+import static org.dataconservancy.pass.loader.nihms.TransformUtil.emptyStr;
+import static org.dataconservancy.pass.loader.nihms.TransformUtil.formatDate;
 
 /**
  * Does the heavy lifting of data transform work, converting a NihmsPublication to a 
@@ -50,7 +45,6 @@ public class SubmissionTransformer {
 
     private static final Logger LOG = LoggerFactory.getLogger(SubmissionTransformer.class);
     
-    private static final String NIHMS_PASS_URI_KEY = "nihms.pass.uri"; 
     private static final String PMC_URL_TEMPLATE_KEY = "pmc.url.template"; 
     private static final String PMC_URL_TEMPLATE_DEFAULT = "https://www.ncbi.nlm.nih.gov/pmc/articles/PMC%s/";
 
@@ -105,11 +99,7 @@ public class SubmissionTransformer {
     
     private void setProperties() {
         this.pmcUrlTemplate = ConfigUtil.getSystemProperty(PMC_URL_TEMPLATE_KEY, PMC_URL_TEMPLATE_DEFAULT);   
-        try {
-            this.nihmsRepositoryUri = new URI(ConfigUtil.getSystemProperty(NIHMS_PASS_URI_KEY, "https://example.com/fedora/repositories/1"));
-        } catch (URISyntaxException e) {
-            throw new RuntimeException("NIHMS repository property is not a valid URI, please check the nihms.pass.uri property is populated correctly.", e);
-        }
+        this.nihmsRepositoryUri = TransformUtil.getNihmsRepositoryUri();
     }    
 
     
@@ -127,10 +117,30 @@ public class SubmissionTransformer {
             throw new RuntimeException(String.format("No Grant matching award number \"%s\" was found. Cannot process submission with pmid %s", pub.getGrantNumber(), pub.getPmid()));
         }
         
-        //this will be all about building up the DTO
+        //this stage will be all about building up the DTO
         NihmsSubmissionDTO submissionDTO = new NihmsSubmissionDTO();
-        submissionDTO.setGrantUri(grantUri);
+        
+        Publication publication = retrieveOrCreatePublication(pub);
+        submissionDTO.setPublication(publication);
+        
+        RepositoryCopy repoCopy = retrieveOrCreateRepositoryCopy(pub, publication.getId());
+        submissionDTO.setRepositoryCopy(repoCopy);
 
+        Submission submission = retrieveOrCreateSubmission(publication.getId(), grantUri, (repoCopy!=null), pub.getFileDepositedDate());
+        submissionDTO.setSubmission(submission);
+        
+        return submissionDTO;
+    }
+ 
+
+    
+    //****************************************************
+    //
+    //  Deals with Publication
+    //
+    //****************************************************
+    
+    private Publication retrieveOrCreatePublication(NihmsPublication pub) {
         //use pmid to get additional metadata from Entrez. Need this for DOI, maybe other fields too
         String pmid = pub.getPmid();
         String doi = null;
@@ -141,163 +151,183 @@ public class SubmissionTransformer {
         if (pubmedRecord != null) {
             doi = pubmedRecord.getDoi();
         }
-        
-        //are we looking at an update or new submission? see if an submission exists
-        NihmsSubmission submission = clientService.findExistingSubmission(grantUri, pmid, doi);
-        Deposit nihmsDeposit = null;
-
-        if (submission != null) {
-            // first see if a nihms deposit exists for this submission
-            Set<Deposit> deposits = clientService.readSubmissionDeposits(submission.getId());
-            nihmsDeposit = pickDepositForRepository(deposits, nihmsRepositoryUri);
-            
-            if (nihmsDeposit!=null) {
-                nihmsDeposit = updateNihmsDepositFields(nihmsDeposit, pub);
-                for(Iterator<Deposit> iterator = deposits.iterator(); iterator.hasNext(); ) {
-                    if(iterator.next().getId() == nihmsDeposit.getId()) {
-                        iterator.remove();
-                    }
-                }
-                deposits.add(nihmsDeposit);
-            } else if (needNihmsDeposit(pub)) { //if no deposit has been started we may not need a deposit record... 
-                nihmsDeposit = initiateNewDeposit(pub);
-                deposits.add(nihmsDeposit);
-            }       
-            
-            submission = updateSubmissionFields(submission, pub, grantUri, deposits);
-            
+        Publication publication = clientService.findPublicationById(pmid, doi);
+        if (publication==null){
+            publication = initiateNewPublication(pubmedRecord);
         } else {
-            if (needNihmsDeposit(pub)) {
-                nihmsDeposit = initiateNewDeposit(pub);
+            if (emptyStr(publication.getDoi()) && !emptyStr(doi)) {
+                publication.setDoi(doi);
             }
-            submission = initiateNewSubmission(pubmedRecord, grantUri, nihmsDeposit);
+            if (emptyStr(publication.getPmid())) {
+                publication.setPmid(pmid);
+            }
         }
-        
-        submissionDTO.setNihmsSubmission(submission);
-        submissionDTO.setDeposit(nihmsDeposit);
-        
-        return submissionDTO;
+        return publication;
     }
- 
-    
-    /**
-     * 
-     * @param pub
-     * @param pmr
-     * @param grantUri
-     * @param deposit
-     * @return
-     */
-    private NihmsSubmission initiateNewSubmission(PubMedEntrezRecord pmr, URI grantUri, Deposit deposit) {
-        LOG.info("No submission found for PMID \"{}\", initiating new Submission record", pmr.getPmid());
-        NihmsSubmission submission = new NihmsSubmission();
 
-        Set<Deposit> deposits = new HashSet<Deposit>();
-        if (deposit != null) {
-            deposits.add(deposit);
-        }
+    private Publication initiateNewPublication(PubMedEntrezRecord pmr) {
+        LOG.info("No existing publication found for PMID \"{}\", initiating new Publication record", pmr.getPmid());
+        Publication publication = new Publication();
 
-        submission.setPmid(pmr.getPmid());
+        publication.setPmid(pmr.getPmid());
                
-        submission.setStatus(calcSubmissionStatus(deposits, false));
-        submission.setTitle(pmr.getTitle());
-        submission.setDoi(pmr.getDoi());
-        submission.setVolume(pmr.getVolume());
-        submission.setIssue(pmr.getIssue());
-        List<URI> grants = new ArrayList<URI>();
-        grants.add(grantUri);
-        submission.setGrants(grants);
-        submission.setSource(Source.OTHER);
+        publication.setTitle(pmr.getTitle());
+        publication.setDoi(pmr.getDoi());
+        publication.setVolume(pmr.getVolume());
+        publication.setIssue(pmr.getIssue());
+        
         URI journalUri = clientService.findJournalByIssn(pmr.getIssn());
         if (journalUri == null) {
             //try ESSN
             journalUri = clientService.findJournalByIssn(pmr.getEssn());
         }
-        submission.setJournal(journalUri);
+        publication.setJournal(journalUri);
         
+        return publication;
+    }
+
+
+    
+    //****************************************************
+    //
+    //  Deals with RepositoryCopy
+    //
+    //****************************************************
+        
+    private RepositoryCopy retrieveOrCreateRepositoryCopy(NihmsPublication pub, URI publicationId) {
+        RepositoryCopy repoCopy = null;
+        if (publicationId != null) {
+            repoCopy = clientService.findRepositoryCopyByRepoAndPubId(nihmsRepositoryUri, publicationId);
+        }
+        if (repoCopy==null && !emptyStr(pub.getNihmsId())) { //only create if there is at least a nihms ID indicating something is started
+            repoCopy = initiateNewRepositoryCopy(pub, publicationId);
+        }
+        return repoCopy;
+    }
+    
+    
+    private RepositoryCopy initiateNewRepositoryCopy(NihmsPublication pub, URI publicationId) {
+        RepositoryCopy repositoryCopy = new RepositoryCopy();
+
+        LOG.info("NIHMS RepositoryCopy record needed for PMID \"{}\", initiating new Deposit record", pub.getPmid());
+
+        repositoryCopy.setPublication(publicationId);
+        repositoryCopy.setCopyStatus(TransformUtil.calcRepoCopyStatus(pub, null));
+        repositoryCopy.setRepository(nihmsRepositoryUri);
+        
+        List<String> externalIds = new ArrayList<String>();
+        String pmcId = pub.getPmcId();
+        if (!emptyStr(pmcId)){
+            externalIds.add(pmcId);    
+            repositoryCopy.setAccessUrl(createAccessUrl(pmcId));        
+        }
+        if (!emptyStr(pub.getNihmsId())) {
+            externalIds.add(pub.getNihmsId());            
+        }
+        repositoryCopy.setExternalIds(externalIds);
+                        
+        return repositoryCopy;
+    }
+
+    private URI createAccessUrl(String pmcId) {
+        URI accessUrl = null;
+        try {
+            accessUrl = new URI(String.format(pmcUrlTemplate, pmcId));
+        } catch (Exception ex) {
+            throw new RuntimeException(String.format("Could not create PMCID URL from using ID {}", pmcId), ex);
+        }
+        return accessUrl;        
+    }
+    
+
+    
+    //****************************************************
+    //
+    //  Deals with Submission
+    //
+    //****************************************************
+    
+    private Submission retrieveOrCreateSubmission(URI publicationUri, URI grantUri, boolean hasRepoCopy, String depositedDate) {
+        Grant grant = clientService.readGrant(grantUri);
+        Submission submission = null;
+
+        if (publicationUri != null) {
+            List<Submission> submissions = clientService.findSubmissionsByPublicationAndUserId(publicationUri, grant.getPi());
+            
+            if (submissions.size()>0){
+                // is there already a nihms submission in the system for this publication? if so add to it instead of making a new one
+                List<Submission> nihmsSubmissions = submissions.stream()
+                            .filter(s -> s.getRepositories().contains(nihmsRepositoryUri))
+                            .collect(Collectors.toList());
+                
+                if (nihmsSubmissions.size()==1) {
+                    submission = nihmsSubmissions.get(0);
+                } else if (nihmsSubmissions.size()>1) { //something wrong with the data
+                    String msg = String.format("2 or more submissions, including %s and %s, contain a reference to the NIHMS repository. "
+                                                + "Only one Submission should contain a reference. Please check the data before "
+                                                + "reloading the record.", nihmsSubmissions.get(0), nihmsSubmissions.get(1));
+                    throw new RuntimeException(msg);
+                }
+                    
+                //no existing submission for nihms repo, lets see if we can find an appropriate submission 
+                // to add repository to instead of creating a new one. First one found will do
+                if (submission == null) {
+                    submission = submissions.stream().filter(s -> !s.getSubmitted()).findFirst().orElse(null);
+                }
+                
+            } 
+        }
+        
+        if (submission==null) {
+            submission = initiateNewSubmission(grantUri, publicationUri);    
+        }
+        
+        // if we have a repository copy, but the submission is not marked as submitted, set it as submitted and use file deposit date
+        // when a submission is set to submitted by this transform process, it becomes Source.OTHER regardless of where it started
+        if (submission.getRepositories().size()==1
+                && hasRepoCopy 
+                && !submission.getSubmitted()) {
+            submission.setSubmitted(true);
+            submission.setSource(Source.OTHER);
+            // in the absence of an alternative submittedDate, use the file deposited date from NIHMS data
+            if (!emptyStr(depositedDate)) {
+                submission.setSubmittedDate(formatDate(depositedDate));
+            }
+        }
+
+        // finally, make sure grant is in the list of the chosen submission
+        List<URI> grants = submission.getGrants();
+        if (!grants.contains(grantUri)) {
+            grants.add(grantUri);
+            submission.setGrants(grants);
+        }
+                
+        return submission;
+    }
+    
+    private Submission initiateNewSubmission(URI grantUri, URI publicationUri) {
+        LOG.info("No Submission to Repository{} found for Grant {}", nihmsRepositoryUri, grantUri);
+        Submission submission = new Submission();
+
+        submission.setPublication(publicationUri);
+        
+        List<URI> repositories = new ArrayList<URI>();
+        repositories.add(nihmsRepositoryUri);
+        submission.setRepositories(repositories);
+        
+        List<URI> grants = new ArrayList<URI>();
+        grants.add(grantUri);
+        submission.setGrants(grants);
+                
+        submission.setSource(Source.OTHER);
+        submission.setAggregatedDepositStatus(null);
+        submission.setSubmitted(false); // false by default, changes to true if there is a repoCopy
+
+        Grant grant = clientService.readGrant(grantUri);
+        submission.setUser(grant.getPi());
+                
         return submission;
     }
     
     
-    /**
-     * 
-     * @param submission
-     * @param pub
-     * @param grantUri
-     * @param deposits
-     * @return
-     */
-    private NihmsSubmission updateSubmissionFields(NihmsSubmission submission, NihmsPublication pub, URI grantUri, Set<Deposit> deposits) {
-        //TODO: setting boolean for missing deposits to false, but there is really no way to know this at the moment unless there is a policy service
-        Submission.Status newStatus = calcSubmissionStatus(deposits, false);
-        if (!submission.getStatus().equals(newStatus)) {
-            LOG.info("Updating Submission \"{}\". Status changing from {} to {}", 
-                     submission.getId().toString(), submission.getStatus().name(), newStatus.name());
-            submission.setStatus(newStatus);
-        }
-        if (submission.getPmid()==null || submission.getPmid().length()==0) {
-            LOG.info("Updating Submission \"{}\". Adding PMID \"{}\"", submission.getId(), pub.getPmid());
-            submission.setPmid(pub.getPmid());
-        }
-        List<URI> grantUris = submission.getGrants();
-        if (!grantUris.contains(grantUri)) {
-            LOG.info("Updating Submission \"{}\". Adding Grant URI \"{}\"", submission.getId(), grantUri);
-            grantUris.add(grantUri);
-            submission.setGrants(grantUris);
-        }
-        return submission;
-    }
-    
-    private Deposit initiateNewDeposit(NihmsPublication pub) {
-        Deposit deposit = new Deposit();
-
-        LOG.info("NIHMS Deposit record needed for PMID \"{}\", initiating new Deposit record", pub.getPmid());
-        String pmcId = pub.getPmcId();
-        String nihmsId = pub.getNihmsId();
-        if (pmcId!=null && pmcId.length()>0) {
-            deposit.setAssignedId(pmcId);    
-            deposit.setAccessUrl(String.format(pmcUrlTemplate, pmcId));
-        } else if (nihmsId!=null && nihmsId.length()>0){
-            deposit.setAssignedId(nihmsId);
-        }
-        deposit.setRepository(nihmsRepositoryUri);
-        deposit.setRequested(false);
-
-        deposit.setUserActionRequired(isDepositUserActionRequired(pub));
-        
-        deposit.setUserActionRequired(false);
-        
-        deposit.setStatus(calcDepositStatus(pub, null));
-        
-        return deposit;
-    }
-    
-    
-    private Deposit updateNihmsDepositFields(Deposit deposit, NihmsPublication pub) {
-        String pmcId = pub.getPmcId();
-        String nihmsId = pub.getNihmsId();
-        if (pmcId!=null && pmcId.length()>0) {
-            if (deposit.getAssignedId()==null || !deposit.getAssignedId().equals(pmcId)) {
-                LOG.info("Updating Deposit \"{}\". Changing AssignedId from \"{}\" to \"{}\"", deposit.getId(), deposit.getAssignedId(), pmcId);
-                deposit.setAssignedId(pmcId);
-                deposit.setAccessUrl(String.format(pmcUrlTemplate, pmcId));
-            }
-        } else if (nihmsId!=null && nihmsId.length()>0){
-            if (deposit.getAssignedId()==null || !deposit.getAssignedId().equals(nihmsId)) {
-                LOG.info("Updating Deposit \"{}\". Changing AssignedId from \"{}\" to \"{}\"", deposit.getId(), deposit.getAssignedId(), nihmsId);
-                deposit.setAssignedId(nihmsId);
-            }
-        }
-        Deposit.Status currDepositStatus = deposit.getStatus();
-        Deposit.Status newDepositStatus = calcDepositStatus(pub, currDepositStatus);
-        if (!currDepositStatus.equals(newDepositStatus)) {
-            LOG.info("Updating Deposit \"{}\". Changing status from \"{}\" to \"{}\"", deposit.getId(), deposit.getStatus(), newDepositStatus);
-            deposit.setStatus(newDepositStatus);
-        }
-        return deposit;
-    }
-    
-
-    
-
 }

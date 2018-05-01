@@ -28,9 +28,10 @@
     <org-json.version>20180130</org-json.version>
   	<commons-csv.version>1.5</commons-csv.version>
   	<slf4j.version>1.7.25</slf4j.version>
-  	<pass-client.version>0.0.1-SNAPSHOT</pass-client.version>
+  	<pass-client.version>0.2.0-SNAPSHOT</pass-client.version>
     <logback.version>1.2.3</logback.version>
     <selenium.version>3.11.0</selenium.version>
+    <args4j.version>2.33</args4j.version>
     <mockito.version>1.9.5</mockito.version>
   </properties>
   
@@ -41,6 +42,7 @@
     <module>nihms-pass-client</module>
     <module>nihms-submission-etl-integration</module>
     <module>nihms-submission-etl-cli</module>
+    <module>nihms-submission-etl-util</module>
   </modules>
 
   <build>    
@@ -118,7 +120,7 @@
       
       <dependency>
 	    <groupId>org.dataconservancy.pass</groupId>
-        <artifactId>pass-fedora-client</artifactId>
+        <artifactId>pass-data-client</artifactId>
 	    <version>${pass-client.version}</version>
       </dependency>
       
@@ -162,6 +164,12 @@
         <groupId>org.seleniumhq.selenium</groupId>
         <artifactId>selenium-java</artifactId>
         <version>${selenium.version}</version>
+      </dependency>
+      
+      <dependency>
+        <groupId>args4j</groupId>
+        <artifactId>args4j</artifactId>
+        <version>${args4j.version}</version>
       </dependency>
 	
       <dependency>

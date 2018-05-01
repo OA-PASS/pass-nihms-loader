@@ -17,9 +17,6 @@ package org.dataconservancy.pass.loader.nihms;
 
 import java.net.URI;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -27,8 +24,11 @@ import org.junit.rules.ExpectedException;
 
 import org.dataconservancy.pass.client.nihms.NihmsPassClientService;
 import org.dataconservancy.pass.model.Deposit;
-import org.dataconservancy.pass.model.PassEntityType;
-import org.dataconservancy.pass.model.ext.nihms.NihmsSubmission;
+import org.dataconservancy.pass.model.Deposit.DepositStatus;
+import org.dataconservancy.pass.model.Publication;
+import org.dataconservancy.pass.model.RepositoryCopy;
+import org.dataconservancy.pass.model.RepositoryCopy.CopyStatus;
+import org.dataconservancy.pass.model.Submission;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
@@ -41,7 +41,7 @@ import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 /**
- * Unit tests for NihmsLoader
+ * Unit tests for Nihms SubmissionLoader
  * @author Karen Hanson
  */
 public class SubmissionLoaderTest {
@@ -52,10 +52,14 @@ public class SubmissionLoaderTest {
     @Mock
     private NihmsPassClientService clientServiceMock;
     
-    private static final String sGrantUri = "https://example.com/fedora/grants/1";
     private static final String sSubmissionUri = "https://example.com/fedora/submissions/1";
-    private static final String sRepositoryUri = "https://example.com/fedora/repositories/1";
+    private static final String sRepositoryCopyUri = "https://example.com/fedora/repositoryCopies/1";
     private static final String sDepositUri = "https://example.com/fedora/deposits/1";
+    private static final String sPublicationUri = "https://example.com/fedora/publications/1";
+    private static final String sUserUri = "https://example.com/fedora/users/1";
+
+    private static final String title = "A Title";
+    private static String pmid = "12345678";
     
     @Before 
     public void initMocks() {
@@ -63,227 +67,244 @@ public class SubmissionLoaderTest {
     }
     
     /**
-     * Check that if a Submission is provided with no ID and no deposit, it will do a 
-     * createSubmission and not touch Deposit data
+     * Check that if a Submission is provided with new Publication, new Submission and no 
+     * RepositoryCopy, it will do createPublication, createSubmission and not touch RepositoryCopy data
+     * 
      * @throws Exception
      */
     @Test
-    public void testLoadNewSubmissionNoNewDeposit() throws Exception {
+    public void testLoadNewPubNewSubmissionNoRepositoryCopy() throws Exception {
         SubmissionLoader loader = new SubmissionLoader(clientServiceMock);
         
-        NihmsSubmission submission = new NihmsSubmission();
-        submission.setId(null);
-        submission.setTitle("test");
+        Publication publication = new Publication();
+        publication.setTitle(title);
+        publication.setPmid(pmid);
+        
+        Submission submission = new Submission();
+        submission.setPublication(new URI(sPublicationUri));
+        submission.setUser(new URI(sUserUri));
 
         NihmsSubmissionDTO dto = new NihmsSubmissionDTO();
-        URI grantUri = new URI(sGrantUri);
-        dto.setGrantUri(grantUri);        
-        dto.setNihmsSubmission(submission);
-                
-        loader.load(dto);
+        dto.setPublication(publication);
+        dto.setSubmission(submission);
 
-        ArgumentCaptor<NihmsSubmission> submissionCaptor = ArgumentCaptor.forClass(NihmsSubmission.class);
-        ArgumentCaptor<URI> grantUriCaptor = ArgumentCaptor.forClass(URI.class);
-        verify(clientServiceMock).createNihmsSubmission(submissionCaptor.capture(), grantUriCaptor.capture()); 
-        
-        assertEquals(PassEntityType.SUBMISSION.getName(), submissionCaptor.getValue().getType());
-        assertEquals("test", submissionCaptor.getValue().getTitle());
-        assertEquals(0, submissionCaptor.getValue().getDeposits().size());
-        
-        assertEquals(grantUri, grantUriCaptor.getValue());
-        
-        //no deposits so shouldn't touch deposit create/update
-        verify(clientServiceMock, never()).createDeposit(Mockito.anyObject());    
-        verify(clientServiceMock, never()).updateDeposit(Mockito.anyObject());      
-    }
-
-    /**
-     * Check that if a Submission has an ID but no Deposit, it will do an update
-     * and not touch Deposit data.
-     * @throws Exception
-     */
-    @Test
-    public void testLoadUpdateSubmissionNoNewDeposit() throws Exception {
-        SubmissionLoader loader = new SubmissionLoader(clientServiceMock);
-
-        NihmsSubmission submission = new NihmsSubmission();
-        submission.setId(new URI(sSubmissionUri));
-
-        NihmsSubmissionDTO dto = new NihmsSubmissionDTO();
-        URI grantUri = new URI(sGrantUri);
-        dto.setGrantUri(grantUri);        
-        dto.setNihmsSubmission(submission);
+        when(clientServiceMock.createPublication(publication)).thenReturn(new URI(sPublicationUri));
+        when(clientServiceMock.createSubmission(submission)).thenReturn(new URI(sSubmissionUri));
         
         loader.load(dto);
+        
+        ArgumentCaptor<Publication> publicationCaptor = ArgumentCaptor.forClass(Publication.class);
+        verify(clientServiceMock).createPublication(publicationCaptor.capture());
+        assertEquals(publication, publicationCaptor.getValue());
 
-        ArgumentCaptor<NihmsSubmission> submissionCaptor = ArgumentCaptor.forClass(NihmsSubmission.class);
-        verify(clientServiceMock).updateNihmsSubmission(submissionCaptor.capture()); 
+        ArgumentCaptor<Submission> submissionCaptor = ArgumentCaptor.forClass(Submission.class);
+        verify(clientServiceMock).createSubmission(submissionCaptor.capture()); 
+        submission.setPublication(new URI(sPublicationUri));
         assertEquals(submission, submissionCaptor.getValue());
 
-        //no deposits so shouldn't touch deposit create/update
-        verify(clientServiceMock, never()).createDeposit(Mockito.anyObject());    
+        //no repo copy so shouldn't touch RepositoryCopy create/update
+        verify(clientServiceMock, never()).createRepositoryCopy(Mockito.anyObject());    
+        verify(clientServiceMock, never()).updateRepositoryCopy(Mockito.anyObject());       
+        verify(clientServiceMock, never()).updateDeposit(Mockito.anyObject());      
+    }
+    
+    
+    /**
+     * Check that if a Submission is provided with existing Publication, new Submission and no 
+     * RepositoryCopy, it will do updatePublication, createSubmission and not touch RepositoryCopy data
+     * 
+     * @throws Exception
+     */
+    @Test
+    public void testLoadUpdatePubNewSubmissionNoRepositoryCopy() throws Exception {
+        SubmissionLoader loader = new SubmissionLoader(clientServiceMock);
+        
+        Publication publication = new Publication();
+        publication.setId(new URI(sPublicationUri));
+        publication.setTitle(title);
+        publication.setPmid(pmid);
+        
+        Submission submission = new Submission();
+        submission.setUser(new URI(sUserUri));
+        submission.setPublication(publication.getId());
+
+        NihmsSubmissionDTO dto = new NihmsSubmissionDTO();
+        dto.setPublication(publication);
+        dto.setSubmission(submission);
+                
+        loader.load(dto);
+        
+        ArgumentCaptor<Publication> publicationCaptor = ArgumentCaptor.forClass(Publication.class);
+        verify(clientServiceMock).updatePublication(publicationCaptor.capture());
+        assertEquals(publication, publicationCaptor.getValue());
+
+        ArgumentCaptor<Submission> submissionCaptor = ArgumentCaptor.forClass(Submission.class);
+        verify(clientServiceMock).createSubmission(submissionCaptor.capture()); 
+        assertEquals(submission, submissionCaptor.getValue());
+
+        //no repo copy so shouldn't touch RepositoryCopy create/update
+        verify(clientServiceMock, never()).createRepositoryCopy(Mockito.anyObject());    
+        verify(clientServiceMock, never()).updateRepositoryCopy(Mockito.anyObject());       
+        verify(clientServiceMock, never()).updateDeposit(Mockito.anyObject());      
+    }
+    
+
+    /**
+     * Check that if a Submission is provided with existing Publication, existing Submission and no 
+     * RepositoryCopy, it will do updatePublication, updateSubmission and not touch RepositoryCopy data
+     * 
+     * @throws Exception
+     */
+    @Test
+    public void testLoadUpdatePubUpdateSubmissionNoRepoCopy() throws Exception {
+        
+        Publication publication = new Publication();
+        publication.setId(new URI(sPublicationUri));
+        publication.setTitle(title);
+        publication.setPmid(pmid);
+        
+        Submission submission = new Submission();
+        submission.setId(new URI(sSubmissionUri));
+        submission.setPublication(new URI(sPublicationUri));
+        submission.setUser(new URI(sUserUri));
+
+        NihmsSubmissionDTO dto = new NihmsSubmissionDTO();
+        dto.setPublication(publication);
+        dto.setSubmission(submission);
+                
+        SubmissionLoader loader = new SubmissionLoader(clientServiceMock);
+        
+        loader.load(dto);
+        
+        ArgumentCaptor<Publication> publicationCaptor = ArgumentCaptor.forClass(Publication.class);
+        verify(clientServiceMock).updatePublication(publicationCaptor.capture());
+        assertEquals(publication, publicationCaptor.getValue());
+
+        ArgumentCaptor<Submission> submissionCaptor = ArgumentCaptor.forClass(Submission.class);
+        verify(clientServiceMock).updateSubmission(submissionCaptor.capture()); 
+        assertEquals(submission, submissionCaptor.getValue());
+
+        //no repo copy so shouldn't touch RepositoryCopy create/update
+        verify(clientServiceMock, never()).createRepositoryCopy(Mockito.anyObject());    
+        verify(clientServiceMock, never()).updateRepositoryCopy(Mockito.anyObject());       
         verify(clientServiceMock, never()).updateDeposit(Mockito.anyObject());     
     }
 
     /**
-     * Check that if Submission has an ID and a Deposit, it will create a new 
-     * Deposit, add the new URI to the Submission Deposits list and do a new Submission.
+     * Check that if Submission has existing publication, new submission, new RepositoryCopy
+     * does updatePublication, createSubmission, createRepositoryCopy
+     * 
      * @throws Exception
      */
     @Test
-    public void testLoadNewSubmissionNewDeposit() throws Exception {
-        SubmissionLoader loader = new SubmissionLoader(clientServiceMock);
+    public void testLoadUpdatePublicationNewSubmissionNewRepoCopy() throws Exception {
 
-        //initiate test objects
-        NihmsSubmission submission = new NihmsSubmission();
-        submission.setId(null);
-
-        Deposit deposit = new Deposit();
-        deposit.setRepository(new URI(sRepositoryUri));
+        Publication publication = new Publication();
+        publication.setId(new URI(sPublicationUri));
+        publication.setTitle(title);
+        publication.setPmid(pmid);
+        
+        Submission submission = new Submission();
+        submission.setPublication(publication.getId());
+        submission.setUser(new URI(sUserUri));
+        
+        RepositoryCopy repositoryCopy = new RepositoryCopy();
+        repositoryCopy.setPublication(publication.getId());
+        repositoryCopy.setRepository(TransformUtil.getNihmsRepositoryUri());
+        repositoryCopy.setCopyStatus(CopyStatus.ACCEPTED);
         
         NihmsSubmissionDTO dto = new NihmsSubmissionDTO();
-        URI grantUri = new URI(sGrantUri);
-        dto.setGrantUri(grantUri);        
-        dto.setNihmsSubmission(submission);
-        dto.setDeposit(deposit);
+        dto.setPublication(publication);
+        dto.setSubmission(submission);
+        dto.setRepositoryCopy(repositoryCopy);
         
-        //ensure calls to mock create methods return a URI
+        SubmissionLoader loader = new SubmissionLoader(clientServiceMock);
+
         URI submissionUri = new URI(sSubmissionUri);
-        when(clientServiceMock.createNihmsSubmission(submission, grantUri)).thenReturn(submissionUri);
-        when(clientServiceMock.readNihmsSubmission(Mockito.anyObject())).thenReturn(submission);
-        URI depositUri = new URI(sDepositUri);        
-        when(clientServiceMock.createDeposit(Mockito.anyObject())).thenReturn(depositUri);
+        when(clientServiceMock.createSubmission(submission)).thenReturn(submissionUri);
         
         //run it
         loader.load(dto);     
         
-        //capture create submission arguments and validate
-        ArgumentCaptor<NihmsSubmission> submissionCaptor = ArgumentCaptor.forClass(NihmsSubmission.class);
-        ArgumentCaptor<URI> grantUriCaptor = ArgumentCaptor.forClass(URI.class);
-        verify(clientServiceMock).createNihmsSubmission(submissionCaptor.capture(), grantUriCaptor.capture()); 
-        assertEquals(submission, submissionCaptor.getValue());
-        assertEquals(grantUri, grantUriCaptor.getValue());
+        ArgumentCaptor<Publication> publicationCaptor = ArgumentCaptor.forClass(Publication.class);
+        verify(clientServiceMock).updatePublication(publicationCaptor.capture()); 
+        assertEquals(publication, publicationCaptor.getValue());
 
-        //capture create deposit arguments, make local deposit look like the one we expect, and validate
-        ArgumentCaptor<Deposit> depositCaptor = ArgumentCaptor.forClass(Deposit.class);
-        verify(clientServiceMock).createDeposit(depositCaptor.capture());
-        deposit.setSubmission(submissionUri);
-        assertEquals(deposit, depositCaptor.getValue());
-        
-        //for create submission & deposit, need to go back and update deposit list of submission. 
-        //create a list of deposits as we expect it, capture submission from update and validate
-        List<URI> deposits = new ArrayList<URI>();
-        deposits.add(depositUri);
-                
-        ArgumentCaptor<NihmsSubmission> captor = ArgumentCaptor.forClass(NihmsSubmission.class);
-        verify(clientServiceMock).updateNihmsSubmission(captor.capture()); 
+        ArgumentCaptor<Submission> submissionCaptor = ArgumentCaptor.forClass(Submission.class);
+        verify(clientServiceMock).createSubmission(submissionCaptor.capture()); 
         assertEquals(submission, submissionCaptor.getValue());
-        assertEquals(deposits.get(0), captor.getValue().getDeposits().get(0));
-        assertEquals(deposits.size(), captor.getValue().getDeposits().size());
-        
-        //check update deposit wasn't touched
-        verify(clientServiceMock, never()).updateDeposit(Mockito.anyObject());    
+
+        ArgumentCaptor<RepositoryCopy> repoCopyCaptor = ArgumentCaptor.forClass(RepositoryCopy.class);
+        verify(clientServiceMock).createRepositoryCopy(repoCopyCaptor.capture()); 
+        assertEquals(repositoryCopy, repoCopyCaptor.getValue());
+
+        verify(clientServiceMock, never()).updateDeposit(Mockito.anyObject());     
     }
 
+    
     /**
-     * Check that when you do an update submission and add a deposit, that 
-     * deposit list is created and Submissions.deposits list is updated accurately
+     * Check that if Submission has existing publication, existing submission, new RepositoryCopy,
+     * existing Deposit that has no RepoCopy that it does updatePublication, updateSubmission, 
+     * createRepositoryCopy, and updates Deposit link
      * @throws Exception
      */
     @Test
-    public void testLoadUpdateSubmissionNewDeposit() throws Exception {
+    public void testLoadNewPubNewSubmissionNewRepoCopy() throws Exception {
+
+        Publication publication = new Publication();
+        publication.setId(new URI(sPublicationUri));
+        publication.setTitle(title);
+        publication.setPmid(pmid);
+
+        Submission submission = new Submission();
+        submission.setId(new URI(sSubmissionUri));
+        submission.setPublication(publication.getId());
+        submission.setUser(new URI(sUserUri));
+        
+        RepositoryCopy repositoryCopy = new RepositoryCopy();
+        repositoryCopy.setPublication(publication.getId());
+        repositoryCopy.setRepository(TransformUtil.getNihmsRepositoryUri());
+        repositoryCopy.setCopyStatus(CopyStatus.ACCEPTED);
+        
+        Deposit deposit = new Deposit();
+        deposit.setId(new URI(sDepositUri));
+        deposit.setDepositStatus(DepositStatus.ACCEPTED);
+        deposit.setRepository(repositoryCopy.getRepository());
+        
+        NihmsSubmissionDTO dto = new NihmsSubmissionDTO();
+        dto.setPublication(publication);
+        dto.setSubmission(submission);
+        dto.setRepositoryCopy(repositoryCopy);
+        
         SubmissionLoader loader = new SubmissionLoader(clientServiceMock);
 
-        //initiate test objects
-        NihmsSubmission submission = new NihmsSubmission();
-        URI submissionUri = new URI(sSubmissionUri);
-        submission.setId(submissionUri);
-
-        Deposit deposit = new Deposit();
-        deposit.setRepository(new URI(sRepositoryUri));
-
-        NihmsSubmissionDTO dto = new NihmsSubmissionDTO();
-        URI grantUri = new URI(sGrantUri);
-        dto.setGrantUri(grantUri);        
-        dto.setNihmsSubmission(submission);
-        dto.setDeposit(deposit);
-        
-        //ensure calls to mock create methods return a URI
-        URI depositUri = new URI(sDepositUri);        
-        when(clientServiceMock.createDeposit(Mockito.anyObject())).thenReturn(depositUri);
-
-        //run it
-        loader.load(dto);     
-
-        //capture create deposit arguments, make local deposit look like the one we expect, and validate
-        ArgumentCaptor<Deposit> depositCaptor = ArgumentCaptor.forClass(Deposit.class);
-        verify(clientServiceMock).createDeposit(depositCaptor.capture());
-        deposit.setSubmission(submissionUri);
-        assertEquals(deposit, depositCaptor.getValue());
-        
-        //capture update submission arguments, check submission and deposit uri list are as expected
-        ArgumentCaptor<NihmsSubmission> submissionCaptor = ArgumentCaptor.forClass(NihmsSubmission.class);
-        verify(clientServiceMock).updateNihmsSubmission(submissionCaptor.capture()); 
-        List<URI> deposits = new ArrayList<URI>();
-        deposits.add(depositUri);
-        submission.setDeposits(deposits);
-        assertEquals(submission, submissionCaptor.getValue());
-        assertEquals(deposits.get(0), submissionCaptor.getValue().getDeposits().get(0));
-        assertEquals(deposits.size(), submissionCaptor.getValue().getDeposits().size());
-
-        //check create submission and update deposit weren't touched
-        verify(clientServiceMock, never()).createNihmsSubmission(Mockito.anyObject(), Mockito.anyObject()); 
-        verify(clientServiceMock, never()).updateDeposit(Mockito.anyObject()); 
-    }
-
-    /**
-     * Check that if you update a submission and a deposit but create no new objects, that
-     * deposit and submission are passed as expected, and no creates happen
-     * @throws Exception
-     */
-    @Test
-    public void testLoadUpdateSubmissionUpdateDeposit() throws Exception {
-
-        SubmissionLoader loader = new SubmissionLoader(clientServiceMock);
-
-        //initiate test objects
-        NihmsSubmission submission = new NihmsSubmission();
-        URI submissionUri = new URI(sSubmissionUri);
-        submission.setId(submissionUri);
-
-        Deposit deposit = new Deposit();
-        URI depositUri = new URI(sDepositUri);
-        deposit.setId(depositUri);
-        deposit.setRepository(new URI(sRepositoryUri));
-        
-        List<URI> deposits = new ArrayList<URI>(0);
-        deposits.add(depositUri);
-        submission.setDeposits(deposits);
-
-        NihmsSubmissionDTO dto = new NihmsSubmissionDTO();
-        URI grantUri = new URI(sGrantUri);
-        dto.setGrantUri(grantUri);        
-        dto.setNihmsSubmission(submission);
-        dto.setDeposit(deposit);
+        URI repositoryCopyUri = new URI(sRepositoryCopyUri);
+        when(clientServiceMock.createRepositoryCopy(repositoryCopy)).thenReturn(repositoryCopyUri);
+        when(clientServiceMock.findDepositBySubmissionAndRepositoryId(submission.getId(), repositoryCopy.getRepository())).thenReturn(deposit);
         
         //run it
         loader.load(dto);     
-
-        //capture update deposit arguments, make local deposit look like the one we expect, and validate
-        ArgumentCaptor<Deposit> depositCaptor = ArgumentCaptor.forClass(Deposit.class);
-        verify(clientServiceMock).updateDeposit(depositCaptor.capture());
-        assertEquals(deposit, depositCaptor.getValue());
         
-        //capture update submission arguments, check submission and deposit uri list are as expected
-        ArgumentCaptor<NihmsSubmission> submissionCaptor = ArgumentCaptor.forClass(NihmsSubmission.class);
-        verify(clientServiceMock).updateNihmsSubmission(submissionCaptor.capture()); 
+        ArgumentCaptor<Publication> publicationCaptor = ArgumentCaptor.forClass(Publication.class);
+        verify(clientServiceMock).updatePublication(publicationCaptor.capture()); 
+        assertEquals(publication, publicationCaptor.getValue());
+
+        ArgumentCaptor<Submission> submissionCaptor = ArgumentCaptor.forClass(Submission.class);
+        verify(clientServiceMock).updateSubmission(submissionCaptor.capture()); 
         assertEquals(submission, submissionCaptor.getValue());
 
-        //check create submission and create deposit weren't touched
-        verify(clientServiceMock, never()).createNihmsSubmission(Mockito.anyObject(), Mockito.anyObject()); 
-        verify(clientServiceMock, never()).createDeposit(Mockito.anyObject()); 
+        ArgumentCaptor<RepositoryCopy> repoCopyCaptor = ArgumentCaptor.forClass(RepositoryCopy.class);
+        verify(clientServiceMock).createRepositoryCopy(repoCopyCaptor.capture()); 
+        assertEquals(repositoryCopy, repoCopyCaptor.getValue());
+
+        ArgumentCaptor<Deposit> depositCaptor = ArgumentCaptor.forClass(Deposit.class);
+        verify(clientServiceMock).updateDeposit(depositCaptor.capture()); 
+        deposit.setRepositoryCopy(repositoryCopyUri);
+        assertEquals(deposit, depositCaptor.getValue());
+        
     }
 
+    
     /**
      * Checks an exception is thrown when a null DTO is passed into the loader
      */
@@ -298,6 +319,7 @@ public class SubmissionLoaderTest {
 
         verifyZeroInteractions(clientServiceMock); 
     }
+    
 
     /**
      * Checks an exception is thrown when a DTO is passed without the Submission object
@@ -310,26 +332,6 @@ public class SubmissionLoaderTest {
         expectedEx.expectMessage("A null Submission object was passed to the loader.");
         
         NihmsSubmissionDTO dto = new NihmsSubmissionDTO();        
-        loader.load(dto);
-        
-        verifyZeroInteractions(clientServiceMock); 
-    }
-
-    /**
-     * Checks an exception is thrown when a DTO is passed without a GrantUri
-     */
-    @Test
-    public void testLoadThrowExceptionWhenNoGrantUri() {
-        SubmissionLoader loader = new SubmissionLoader(clientServiceMock);
-        NihmsSubmission submission = new NihmsSubmission();
-        submission.setPmid("12345");
-        NihmsSubmissionDTO dto = new NihmsSubmissionDTO();
-        dto.setNihmsSubmission(submission);
-        dto.setGrantUri(null);
-        
-        expectedEx.expect(RuntimeException.class);
-        expectedEx.expectMessage(String.format("No Grant URI was provided for the Submission with PMID: %s.", dto.getNihmsSubmission().getPmid()));
-        
         loader.load(dto);
         
         verifyZeroInteractions(clientServiceMock); 

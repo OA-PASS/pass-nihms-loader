@@ -16,10 +16,16 @@
 package org.dataconservancy.pass.loader.nihms;
 
 import java.net.URI;
+import java.net.URISyntaxException;
 
 import java.util.Set;
 
+import org.dataconservancy.pass.client.util.ConfigUtil;
 import org.dataconservancy.pass.model.Deposit;
+import org.dataconservancy.pass.model.RepositoryCopy.CopyStatus;
+import org.joda.time.DateTime;
+import org.joda.time.format.DateTimeFormat;
+import org.joda.time.format.DateTimeFormatter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -31,6 +37,11 @@ public class TransformUtil {
 
     private static final Logger LOG = LoggerFactory.getLogger(TransformUtil.class);
     
+    private static final String NIHMS_DATEFORMAT = "MM/dd/yyyy";    
+
+    private static final String NIHMS_REPOSITORY_URI_KEY = "nihms.repository.uri"; 
+    private static final String NIHMS_REPOSITORY_URI_DEFAULT = "https://example.com/fedora/repositories/1";
+    
     /**
      * Determines a new deposit status based on various dates populated in the NIHMS publication
      * If the status registered in PASS is further along than NIHMS thinks we are, roll back to
@@ -39,47 +50,31 @@ public class TransformUtil {
      * @param currDepositStatus
      * @return
      */
-    public static Deposit.Status calcDepositStatus(NihmsPublication pub, Deposit.Status currDepositStatus) {
+    public static CopyStatus calcRepoCopyStatus(NihmsPublication pub, CopyStatus currCopyStatus) {
         if (pub.getNihmsStatus().equals(NihmsStatus.COMPLIANT)) {
-            return Deposit.Status.ACCEPTED;
+            return CopyStatus.COMPLETE;
         }
         
         if (pub.isTaggingComplete() || pub.hasInitialApproval()) {
-            return Deposit.Status.IN_PROGRESS;
+            return CopyStatus.IN_PROGRESS;
         }
 
         if (pub.isFileDeposited()) {
-            return Deposit.Status.RECEIVED;
+            return CopyStatus.ACCEPTED;
         }
         
         // if the current status implies we are further along than we really are, roll back to submitted and log.
-        if (currDepositStatus.equals(Deposit.Status.IN_PROGRESS) 
-                || currDepositStatus.equals(Deposit.Status.ACCEPTED)
-                || currDepositStatus.equals(Deposit.Status.RECEIVED)) {
-            LOG.warn("Deposit.Status in PASS was at a later stage than the current NIHMS status would imply. "
-                    + "Rolled back from \"{}\" to \"submitted\" for pmid {}", currDepositStatus.getValue(), pub.getPmid());
-            return Deposit.Status.SUBMITTED;
+        if (currCopyStatus!=null 
+                && (currCopyStatus.equals(CopyStatus.IN_PROGRESS))
+                && (currCopyStatus.equals(CopyStatus.COMPLETE))) {
+            LOG.warn("The status of the RepositoryCopy in PASS was at a later stage than the current NIHMS status would imply. "
+                    + "Rolled back from \"{}\" to \"accepted\" for pmid {}", currCopyStatus.toString(), pub.getPmid());
+            return CopyStatus.ACCEPTED;
         }
         
-        return currDepositStatus;
+        return currCopyStatus;
     }
-    
-    /**
-     * Uses NIHMS publication information to determine whether a user action is required
-     * This happens when there is an indication that a submission was started (has a file deposited date)
-     * but the item is appearing in the non-compliant list.
-     * @param pub
-     * @return true if a user action is required
-     */
-    public static boolean isDepositUserActionRequired(NihmsPublication pub) {
-        if (pub.isFileDeposited() && pub.getNihmsStatus().equals(NihmsStatus.NON_COMPLIANT)) {
-            return true;
-        } else {
-            return false;
-        }
-    }
-    
-    
+            
     /**
      * Searches the deposits list for a deposit to a specific repository. Returns the matching deposit record
      * @param deposits
@@ -97,18 +92,39 @@ public class TransformUtil {
         return null;
     }
     
+    /**
+     * Checks if string null or empty
+     * @param str
+     * @return
+     */    
+    public static boolean emptyStr(String str) {
+        return (str==null || str.isEmpty());
+    }
     
     /**
-     * Determines whether the NIHMS record indicates a Deposit is needed, for example, if the submission
-     * is in process, or it has a NIHMS ID that should be captured.
-     * @param pub
-     * @return true if a NIHMS deposit should be created
+     * Formats a date MM/dd/yyyy to a joda datetime, returns null if no date passed in
+     * @param date
+     * @return
      */
-    public static boolean needNihmsDeposit(NihmsPublication pub) {
-        if (pub.getPmcId()!=null && pub.getPmcId().length()>0) {return true;}
-        if (pub.getNihmsId()!=null && pub.getNihmsId().length()>0) {return true;}
-        if (pub.getNihmsStatus().equals(NihmsStatus.COMPLIANT) || pub.getNihmsStatus().equals(NihmsStatus.IN_PROCESS)) {return true;}
-        return false;
+    public static DateTime formatDate(String date) {
+        if (emptyStr(date)) {
+            return null;
+        }
+        DateTimeFormatter formatter = DateTimeFormat.forPattern(NIHMS_DATEFORMAT);
+        DateTime dt = formatter.parseDateTime(date);
+        return dt;
+    }
+    
+    /**
+     * Retrieves the NIHMS Repository URI based on property key
+     * @return
+     */
+    public static URI getNihmsRepositoryUri() {
+        try {
+            return new URI(ConfigUtil.getSystemProperty(NIHMS_REPOSITORY_URI_KEY, NIHMS_REPOSITORY_URI_DEFAULT));
+        } catch (URISyntaxException e) {
+            throw new RuntimeException("NIHMS repository property is not a valid URI, please check the nihms.pass.uri property is populated correctly.", e);
+        }
     }
 
 }

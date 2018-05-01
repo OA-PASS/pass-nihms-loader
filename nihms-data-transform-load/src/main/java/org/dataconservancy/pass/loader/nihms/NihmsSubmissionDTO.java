@@ -15,10 +15,9 @@
  */
 package org.dataconservancy.pass.loader.nihms;
 
-import java.net.URI;
-
-import org.dataconservancy.pass.model.Deposit;
-import org.dataconservancy.pass.model.ext.nihms.NihmsSubmission;
+import org.dataconservancy.pass.model.Publication;
+import org.dataconservancy.pass.model.RepositoryCopy;
+import org.dataconservancy.pass.model.Submission;
 
 /**
  * Data transfer object to hold the various components of a NIHMS Submission up to the point of
@@ -27,59 +26,57 @@ import org.dataconservancy.pass.model.ext.nihms.NihmsSubmission;
  */
 public class NihmsSubmissionDTO {
 
-    private NihmsSubmission nihmsSubmission = null;
+    private Submission submission = null;
     
-    private Deposit deposit = null;
-
-    private URI grantUri = null;
+    private Publication publication = null;
+        
+    private RepositoryCopy repositoryCopy = null;
 
     
     /**
-     * @return the nihmsSubmission
+     * @return the submission
      */
-    public NihmsSubmission getNihmsSubmission() {
-        return nihmsSubmission;
+    public Submission getSubmission() {
+        return submission;
     }
 
     
     /**
-     * @param nihmsSubmission the nihmsSubmission to set
+     * @param submission the submission to set
      */
-    public void setNihmsSubmission(NihmsSubmission nihmsSubmission) {
-        this.nihmsSubmission = nihmsSubmission;
+    public void setSubmission(Submission submission) {
+        this.submission = submission;
     }
 
     
     /**
-     * @return the deposit
+     * @return the publication
      */
-    public Deposit getDeposit() {
-        return deposit;
+    public Publication getPublication() {
+        return publication;
     }
 
     
     /**
-     * @param deposit the deposit to set
+     * @param publication the publication to set
      */
-    public void setDeposit(Deposit deposit) {
-        this.deposit = deposit;
+    public void setPublication(Publication publication) {
+        this.publication = publication;
     }
 
+    /**
+     * @return the repositoryCopy
+     */
+    public RepositoryCopy getRepositoryCopy() {
+        return repositoryCopy;
+    }
 
     
     /**
-     * @return the grantUri
+     * @param repositoryCopy the repositoryCopy to set
      */
-    public URI getGrantUri() {
-        return grantUri;
-    }
-
-    
-    /**
-     * @param grantUri the grantUri to set
-     */
-    public void setGrantUri(URI grantUri) {
-        this.grantUri = grantUri;
+    public void setRepositoryCopy(RepositoryCopy repositoryCopy) {
+        this.repositoryCopy = repositoryCopy;
     }
     
 }

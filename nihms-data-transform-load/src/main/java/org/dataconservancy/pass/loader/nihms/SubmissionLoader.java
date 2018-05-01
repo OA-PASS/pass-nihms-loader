@@ -17,11 +17,11 @@ package org.dataconservancy.pass.loader.nihms;
 
 import java.net.URI;
 
-import java.util.List;
-
 import org.dataconservancy.pass.client.nihms.NihmsPassClientService;
 import org.dataconservancy.pass.model.Deposit;
-import org.dataconservancy.pass.model.ext.nihms.NihmsSubmission;
+import org.dataconservancy.pass.model.Publication;
+import org.dataconservancy.pass.model.RepositoryCopy;
+import org.dataconservancy.pass.model.Submission;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -58,53 +58,46 @@ public class SubmissionLoader {
      */
     //TODO: need to add the code for dealing with conflicts in Fedora once that functionality is added to the pass-client
     public void load(NihmsSubmissionDTO dto) {
-        if (dto==null || dto.getNihmsSubmission()==null) {
+        if (dto==null || dto.getSubmission()==null) {
             throw new RuntimeException("A null Submission object was passed to the loader.");
         }
-        //make sure there is a grant URI, if not something has gone wrong while forming the DTO.
-        if (dto.getGrantUri()==null) {
-            throw new RuntimeException(String.format("No Grant URI was provided for the Submission with PMID: %s.", dto.getNihmsSubmission().getPmid()));            
-        }
-       
-        Deposit deposit = dto.getDeposit();
-        NihmsSubmission submission = dto.getNihmsSubmission();
-        URI submissionUri = submission.getId();
-        boolean updateNihmsSubmission = false;
         
-        if (submissionUri==null) {
-            submissionUri = clientService.createNihmsSubmission(submission, dto.getGrantUri());
-            LOG.info("A new submission was created with URI {}", submissionUri);
-            //now that it has been created, read back the latest version... 
-            //TODO:fix this when bidirectional linking is done, will no longer be needed.
-            submission = clientService.readNihmsSubmission(submissionUri); 
-            
+        LOG.info("Loading information for Submission with PMID {}", dto.getPublication().getPmid());
+                       
+        Publication publication = dto.getPublication();
+        URI publicationUri = publication.getId();
+        if (publicationUri==null) {
+            publicationUri = clientService.createPublication(publication);
         } else {
-            //create needs so be done in order to process deposits, so it will be done right away, but to avoid
-            //updating twice, set a flag and update everything at the end. 
-            //TODO:fix this when bidirectional linking is done, will no longer be needed.
-            updateNihmsSubmission = true;               
+            clientService.updatePublication(publication);
         }
         
-        if (deposit!=null) {
-            URI depositUri = deposit.getId();
-            if (depositUri==null) {
-                //creating a new deposit, need to set submission
-                deposit.setSubmission(submissionUri);
-                depositUri = clientService.createDeposit(deposit);
-                //while there is a circular reference, we need to double back and update the Submission deposits list.
-                List<URI> deposituris = submission.getDeposits();
-                deposituris.add(depositUri);
-                submission.setDeposits(deposituris);
-                updateNihmsSubmission = true;      
+        Submission submission = dto.getSubmission();
+        URI submissionUri = submission.getId();
+        if (submissionUri==null) {
+            submission.setPublication(publicationUri);
+            submissionUri = clientService.createSubmission(submission);
+        } else {
+            clientService.updateSubmission(submission);
+        }
+
+        RepositoryCopy repositoryCopy = dto.getRepositoryCopy();
+        if (repositoryCopy!=null) {
+            URI repositoryCopyUri = repositoryCopy.getId();
+            if (repositoryCopyUri==null) {
+                repositoryCopy.setPublication(publicationUri);
+                clientService.createRepositoryCopy(repositoryCopy);
             } else {
+                clientService.updateRepositoryCopy(repositoryCopy);
+            }
+            
+            // If repository copy is changing, check Deposit to make sure the RepositoryCopyId is present
+            Deposit deposit = clientService.findDepositBySubmissionAndRepositoryId(submission.getId(), TransformUtil.getNihmsRepositoryUri());
+            if (deposit!=null && deposit.getRepositoryCopy()==null) {
+                deposit.setRepositoryCopy(repositoryCopyUri);
                 clientService.updateDeposit(deposit);
             }
         }
-        
-        if (updateNihmsSubmission) {
-            clientService.updateNihmsSubmission(submission);     
-        }
-        
     }
     
 }
