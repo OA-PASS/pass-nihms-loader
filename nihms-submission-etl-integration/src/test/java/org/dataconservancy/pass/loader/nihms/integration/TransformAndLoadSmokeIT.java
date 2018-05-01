@@ -25,12 +25,12 @@ import org.apache.commons.io.IOUtils;
 import org.junit.Before;
 import org.junit.Test;
 
+import org.dataconservancy.pass.client.PassClientDefault;
 import org.dataconservancy.pass.client.PassClient;
-import org.dataconservancy.pass.client.fedora.FedoraPassClient;
 import org.dataconservancy.pass.client.nihms.NihmsPassClientService;
 import org.dataconservancy.pass.entrez.PmidLookup;
 import org.dataconservancy.pass.entrez.PubMedEntrezRecord;
-import org.dataconservancy.pass.loader.nihms.NihmsSubmissionLoaderApp;
+import org.dataconservancy.pass.loader.nihms.cli.NihmsSubmissionEtlApp;
 import org.dataconservancy.pass.model.Grant;
 import org.json.JSONObject;
 import org.mockito.Mock;
@@ -54,12 +54,13 @@ public class TransformAndLoadSmokeIT {
     @Spy 
     private NihmsPassClientService passClientService = new NihmsPassClientService();
     
-    private PassClient client = new FedoraPassClient();
+    private PassClient client = new PassClientDefault();
     
     private URI grantUri;
 
     static {
         if (System.getProperty("pass.fedora.baseurl") == null) {
+            System.setProperty("pass.fedora.baseurl", "http://localhost:8080/fcrepo/rest/");
             System.setProperty("pass.fedora.baseurl", "http://localhost:8080/fcrepo/rest/");
         }
     }
@@ -87,10 +88,12 @@ public class TransformAndLoadSmokeIT {
         doReturn(grantUri).when(passClientService).findGrantByAwardNumber(Mockito.anyString());
         
         String path = TransformAndLoadSmokeIT.class.getClassLoader().getResource("downloads").getPath();
-        File downloadDir = new File(path);
-        NihmsSubmissionLoaderApp app = new NihmsSubmissionLoaderApp(pmidLookup, passClientService);
-        app.run(downloadDir.toPath());
+        System.setProperty("nihms.downloads.dir", path);
+        
+        NihmsSubmissionEtlApp app = new NihmsSubmissionEtlApp(null, null, pmidLookup, passClientService);
+        app.run();
         //reset file names:
+        File downloadDir = new File(path);
         resetPaths(downloadDir);   
     }
     
