@@ -24,7 +24,13 @@ import java.util.Map;
 import java.util.Set;
 
 import org.dataconservancy.pass.client.PassClient;
-import org.dataconservancy.pass.client.PassClientDefault;
+import org.dataconservancy.pass.client.PassClientFactory;
+import org.dataconservancy.pass.client.nihms.cache.GrantIdCache;
+import org.dataconservancy.pass.client.nihms.cache.NihmsDepositIdCache;
+import org.dataconservancy.pass.client.nihms.cache.NihmsRepositoryCopyIdCache;
+import org.dataconservancy.pass.client.nihms.cache.PublicationIdCache;
+import org.dataconservancy.pass.client.nihms.cache.UserPubSubmissionsCache;
+import org.dataconservancy.pass.loader.nihms.util.ConfigUtil;
 import org.dataconservancy.pass.model.Deposit;
 import org.dataconservancy.pass.model.Grant;
 import org.dataconservancy.pass.model.Journal;
@@ -34,8 +40,12 @@ import org.dataconservancy.pass.model.Submission;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static org.dataconservancy.pass.loader.nihms.util.ProcessingUtil.nullOrEmpty;
+
+
+
 /**
- *
+ * NIHMS PASS client service deals with interactions with the data via the PASS client and controls local data caches
  * @author Karen Hanson
  */
 public class NihmsPassClientService {
@@ -46,14 +56,65 @@ public class NihmsPassClientService {
     
     private PassClient client;
 
+    /**
+     * Local cache of publications, lookup by PMID
+     */
+    private PublicationIdCache publicationCache;
+
+    /**
+     * Local cache of repositoryCopies for NIHMS repo only, lookup by publicationId
+     */
+    private NihmsRepositoryCopyIdCache nihmsRepoCopyCache;
+
+    /**
+     * Local cache of Grants, lookup by awardNumber
+     */
+    private GrantIdCache grantCache;
+
+    /**
+     * Local cache of NIHMS Deposits, lookup by Submission URI
+     */
+    private NihmsDepositIdCache nihmsDepositCache;
+
+    /**
+     * Local cache of the Submissions associated with a User and Publication combination
+     * Look up using UserId and PublicationId concatenated
+     */
+    private UserPubSubmissionsCache userPubSubsCache;
+    
+    /**
+     * Store NIHMS REPO ID setting
+     */
+    private URI nihmsRepoId;
+    
     public NihmsPassClientService() {
-        this.client = new PassClientDefault();
+        this(PassClientFactory.getPassClient());
     }
     
     public NihmsPassClientService(PassClient client) {
         this.client = client;
+        nihmsRepoId = ConfigUtil.getNihmsRepositoryUri();
+        initCaches();
     }
 
+    private void initCaches() {
+        publicationCache = PublicationIdCache.getInstance();
+        nihmsRepoCopyCache = NihmsRepositoryCopyIdCache.getInstance();    
+        grantCache = GrantIdCache.getInstance();        
+        nihmsDepositCache = NihmsDepositIdCache.getInstance();  
+        userPubSubsCache = UserPubSubmissionsCache.getInstance();        
+    }
+    
+    /**
+     * Remove all data from cache
+     */
+    public void clearCache() {
+        this.publicationCache.clear();
+        this.nihmsRepoCopyCache.clear();
+        this.grantCache.clear();
+        this.nihmsDepositCache.clear();
+        this.userPubSubsCache.clear();
+    }
     
     /**
      * Searches for Grant record using awardNumber. Tries this first using the awardNumber as passed in,
@@ -61,116 +122,163 @@ public class NihmsPassClientService {
      * @param awardNumber
      * @return
      */
-    public URI findGrantByAwardNumber(String awardNumber) {
-        if (awardNumber==null || awardNumber.length()==0) {
+    public Grant findGrantByAwardNumber(String awardNumber) {
+        if (nullOrEmpty(awardNumber)) {
             throw new IllegalArgumentException("awardNumber cannot be empty");
         }
-        URI grantUri = client.findByAttribute(Grant.class, AWARD_NUMBER_FLD, awardNumber);
-        if (grantUri==null) {
-            //try with no spaces
-            awardNumber = awardNumber.replaceAll("\\s+","");
-            grantUri = client.findByAttribute(Grant.class, AWARD_NUMBER_FLD, awardNumber);
+        
+        //if the awardNumber is in the cache, retrieve URI.
+        URI grantId = grantCache.get(awardNumber);
+        
+        if (grantId==null) {
+            grantId = client.findByAttribute(Grant.class, AWARD_NUMBER_FLD, awardNumber);
         }
         
-        return grantUri;        
+        if (grantId==null) {
+            //try with no spaces
+            awardNumber = awardNumber.replaceAll("\\s+","");
+            grantId = client.findByAttribute(Grant.class, AWARD_NUMBER_FLD, awardNumber);
+        }
+        
+        if (grantId!=null) {
+            Grant grant = readGrant(grantId);
+            grantCache.put(awardNumber, grantId);
+            return grant;
+        }      
+        
+        return null;
     }
 
-    
+    /**
+     * Looks up publication using PMID, since this is the most reliable field to match. Checks publication
+     * cache first, then checks index
+     * @param pmid
+     * @param doi
+     * @return
+     */
     public Publication findPublicationById(String pmid, String doi) {
         if (pmid == null) {
             throw new RuntimeException("PMID cannot be null when searching for existing Submission.");
         }
         
-        Publication publication = findPublicationByArticleId(pmid, "pmid");
-        if (publication != null) {
-            return publication;
+        //if the pmid/publicationId pair is in the cache, retrieve it.
+        URI publicationId = publicationCache.get(pmid);
+        
+        if (publicationId==null) {
+            publicationId = findPublicationByArticleId(pmid, "pmid");
         }
         
-        if (doi != null) {
-            publication = findPublicationByArticleId(doi, "doi");
-            if (publication != null) {
-                return publication;
-            }
+        if (publicationId==null && doi!=null) {
+            publicationId = findPublicationByArticleId(doi, "doi");
+        }
+        
+        if (publicationId!=null) {
+            Publication publication = readPublication(publicationId);
+            publicationCache.put(pmid, publicationId);
+            return publication;
         }
         
         return null;
     }
 
-    
-    public RepositoryCopy findRepositoryCopyByRepoAndPubId(URI repoId, URI pubId) {
-        if (repoId == null) {
-            throw new RuntimeException("repositoryId cannot be null when searching for existing RepositoryCopy.");
-        }
+    /**
+     * Find NIHMS RepositoryCopy record for a publicationId
+     * @param pubId
+     * @return
+     */
+    public RepositoryCopy findNihmsRepositoryCopyForPubId(URI pubId) {
         if (pubId == null) {
             throw new RuntimeException("publicationId cannot be null when searching for existing RepositoryCopy.");
         }
-        
-        Map<String,Object> attribs = new HashMap<String,Object>();
-        attribs.put("publication", pubId);
-        attribs.put("repository", repoId);
-        
-        Set<URI> repositoryCopies = client.findAllByAttributes(RepositoryCopy.class, attribs);
-        if (repositoryCopies==null || repositoryCopies.size()==0) {
-            return null;
-        } else if (repositoryCopies.size()==1) {
-            return (RepositoryCopy) client.readResource(repositoryCopies.iterator().next(), RepositoryCopy.class);
-        } else {
-            throw new RuntimeException(String.format("There are multiple repository copies matching RepositoryId %s and PublicationId %s. "
-                    + "This indicates a data corruption, please check the data and try again.", pubId, repoId));
+
+        //if the publicationId can be matched in the cache of NIHMS Repository Copy ID mappings, retrieve it
+        URI repoCopyId = nihmsRepoCopyCache.get(pubId);
+
+        if (repoCopyId==null) {
+            Map<String,Object> attribs = new HashMap<String,Object>();
+            attribs.put("publication", pubId);
+            attribs.put("repository", nihmsRepoId);
+            
+            Set<URI> repositoryCopies = client.findAllByAttributes(RepositoryCopy.class, attribs);
+            if (nullOrEmpty(repositoryCopies)) {
+                return null;
+            } else if (repositoryCopies!=null && repositoryCopies.size()==1) {
+                repoCopyId = repositoryCopies.iterator().next();
+            } else if (repositoryCopies!=null && repositoryCopies.size()>1) {
+                throw new RuntimeException(String.format("There are multiple repository copies matching RepositoryId %s and PublicationId %s. "
+                        + "This indicates a data corruption, please check the data and try again.", pubId, nihmsRepoId));
+            }
         }
+        
+        if (repoCopyId!=null) {
+            RepositoryCopy repoCopy = (RepositoryCopy) client.readResource(repoCopyId, RepositoryCopy.class);
+            this.nihmsRepoCopyCache.put(pubId, repoCopy.getId());
+            return repoCopy;
+        }
+        
+        return null;
+        
     }
     
     
     /**
      * Searches for Submissions matching a specific publication and User Id
-     * @param publicationId
+     * @param pubId
      * @param grantId
      * @return
      */
-    public List<Submission> findSubmissionsByPublicationAndUserId(URI publicationId, URI userId) {
-        if (publicationId == null) {
-            throw new RuntimeException("PublicationId cannot be null when searching for existing Submissions");
+    public List<Submission> findSubmissionsByPublicationAndUserId(URI pubId, URI userId) {
+        if (pubId == null) {
+            throw new RuntimeException("publicationId cannot be null when searching for existing Submissions");
         }
         if (userId == null) {
-            throw new RuntimeException("UserId cannot be null when searching for existing Submissions");
+            throw new RuntimeException("userId cannot be null when searching for existing Submissions");
         }
+
+        String userIdPubIdKey = userIdPubIdKey(userId, pubId);
+        
         List<Submission> submissions = new ArrayList<Submission>();
         
         Map<String,Object> attribs = new HashMap<String,Object>();
-        attribs.put("publication", publicationId);
+        attribs.put("publication", pubId);
         attribs.put("user", userId);
         
         Set<URI> uris = client.findAllByAttributes(Submission.class, attribs);
+        
+        //in addition we will check the cache to see if it has any other Submissions that the indexer didn't detect
+        Set<URI> cachedUris = userPubSubsCache.get(userIdPubIdKey);
+        
+        if (cachedUris!=null) {
+            //merge the two sets of URIs to make sure we have all of them
+            uris.addAll(cachedUris);
+        }
+        
         for (URI uri : uris) {
-            if (uri!=null) {
-                submissions.add(readSubmission(uri));
-            }
+            submissions.add(readSubmission(uri));
         } 
+        
+        userPubSubsCache.put(userIdPubIdKey, uris);
         
         return submissions;
     }
+    
     
     /**      
      * Searches for Publication record using articleIds. This detects whether we are dealing
      * with a record that was already looked at previously. 
      * @param articleId
-     * @param grantUri
      * @param idFieldName the name of the field on the Submission model that will be matched e.g. "pmid" or "doi"
      * @return
      */
-    public Publication findPublicationByArticleId(String articleId, String idFieldName) {
-        if (articleId==null || articleId.length()==0) {
+    private URI findPublicationByArticleId(String articleId, String idFieldName) {
+        if (nullOrEmpty(articleId)) {
             throw new IllegalArgumentException("article ID cannot be empty");
         }
-        if (idFieldName==null || idFieldName.length()==0) {
+        if (nullOrEmpty(idFieldName)) {
             throw new IllegalArgumentException("idFieldName cannot be empty");
         }
         URI match = client.findByAttribute(Publication.class, idFieldName, articleId);
-        if (match!=null) {
-            return readPublication(match);
-        } 
-        
-        return null;        
+        return match;
     }
     
     
@@ -180,95 +288,102 @@ public class NihmsPassClientService {
      * @return
      */
     public URI findJournalByIssn(String issn) {
-        if (issn == null) {
-            throw new IllegalArgumentException("issn cannot be empty");            
+        if (nullOrEmpty(issn)) {
+            return null;      
         }
         return client.findByAttribute(Journal.class, "issn", issn);
     }
 
     
     /**
-     * Searches for a Deposit that matches a Submission and Repository ID combination
+     * Searches for a NIHMS Deposit that matches a SubmissionID
      * @param submissionId
-     * @param repositoryId
      * @return
      */
-    public Deposit findDepositBySubmissionAndRepositoryId(URI submissionId, URI repositoryId) {
+    public Deposit findNihmsDepositForSubmission(URI submissionId) {
         if (submissionId == null) {
             throw new IllegalArgumentException("submissionId cannot be empty");            
         }
-        if (repositoryId == null) {
-            throw new IllegalArgumentException("repositoryId cannot be empty");            
+        
+        //if the depositId is in the cache, retrieve it.
+        URI depositId = nihmsDepositCache.get(submissionId);
+        
+        if (depositId==null) {
+            //search for deposit
+            Map<String,Object> attribs = new HashMap<String,Object>();
+            attribs.put("submission", submissionId);
+            attribs.put("repository", nihmsRepoId);        
+            Set<URI> matches = client.findAllByAttributes(Deposit.class, attribs);
+            if (matches!=null && matches.size()==1) {
+                depositId = matches.iterator().next();
+            } else if (!nullOrEmpty(matches)) {
+                throw new RuntimeException(String.format("There are multiple Deposits matching submissionId %s and repositoryId %s. "
+                        + "This indicates a data corruption, please check the data and try again.", submissionId, nihmsRepoId));
+            }
         }
-        Map<String,Object> attribs = new HashMap<String,Object>();
-        attribs.put("submission", submissionId);
-        attribs.put("repository", repositoryId);        
-        Set<URI> matches = client.findAllByAttributes(Deposit.class, attribs);
-        if (matches==null || matches.size()==0) {
-            return null;
-        }
-        if (matches.size()==1) {
-            Deposit deposit = client.readResource(matches.iterator().next(),Deposit.class);
+        
+        if (depositId!=null) {
+            Deposit deposit = client.readResource(depositId,Deposit.class);
+            this.nihmsDepositCache.put(deposit.getSubmission(), deposit.getId());
             return deposit;
-        } else {
-            throw new RuntimeException(String.format("There are multiple Deposits matching submissionId %s and repositoryId %s. "
-                    + "This indicates a data corruption, please check the data and try again.", submissionId, repositoryId));
         }
+
+        return null;
     }
     
     
      /**
      * Retrieve full grant record from database
-     * @param grantUri
+     * @param grantId
      * @return Grant if found, or null if not found
      */
-    public Grant readGrant(URI grantUri){
-        if (grantUri == null) {
-            throw new IllegalArgumentException("grantUri cannot be empty");            
+    private Grant readGrant(URI grantId){
+        if (grantId == null) {
+            throw new IllegalArgumentException("grantId cannot be empty");            
         }
-        Object grantObj = client.readResource(grantUri, Grant.class);
+        Object grantObj = client.readResource(grantId, Grant.class);
         return (grantObj!=null ? (Grant) grantObj : null);
     }
     
     
     /**
      * Retrieve full publication record from database
-     * @param publicationUri
+     * @param publicationId
      * @return Publication if found, or null if not found
      */
-    public Publication readPublication(URI publicationUri){
-        if (publicationUri == null) {
-            throw new IllegalArgumentException("publicationUri cannot be empty");            
+    public Publication readPublication(URI publicationId){
+        if (publicationId == null) {
+            throw new IllegalArgumentException("publicationId cannot be empty");            
         }
-        Object publicationObj = client.readResource(publicationUri, Publication.class);
+        Object publicationObj = client.readResource(publicationId, Publication.class);
         return (publicationObj!=null ? (Publication) publicationObj : null);
     }
     
     
     /**
      * Retrieve full Submission record
-     * @param submissionUri
+     * @param submissionId
      * @return matching submission or null if none found
      */
-    public Submission readSubmission(URI submissionUri) {
-        if (submissionUri == null) {
-            throw new IllegalArgumentException("submissionUri cannot be empty");            
+    public Submission readSubmission(URI submissionId) {
+        if (submissionId == null) {
+            throw new IllegalArgumentException("submissionId cannot be empty");            
         }
-        Object submissionObj = client.readResource(submissionUri, Submission.class);
+        Object submissionObj = client.readResource(submissionId, Submission.class);
         return (submissionObj!=null ? (Submission) submissionObj : null); 
     }
 
 
     /**
      * Retrieve full deposit record from database
-     * @param depositUri
+     * @param depositId
      * @return
      */
-    public Deposit readDeposit(URI depositUri){
-        if (depositUri == null) {
-            throw new IllegalArgumentException("depositUri cannot be empty");            
+    public Deposit readDeposit(URI depositId){
+        if (depositId == null) {
+            throw new IllegalArgumentException("depositId cannot be empty");            
         }
-        Object depositObj = client.readResource(depositUri, Deposit.class);
+        Object depositObj = client.readResource(depositId, Deposit.class);
         return (depositObj!=null ? (Deposit) depositObj : null);
     }
 
@@ -278,9 +393,11 @@ public class NihmsPassClientService {
      * @return
      */
     public URI createPublication(Publication publication) {
-        URI publicationUri = client.createResource(publication);
-        LOG.info("New Publication created with URI {}", publicationUri);   
-        return publicationUri;
+        URI publicationId = client.createResource(publication);
+        LOG.info("New Publication created with URI {}", publicationId);   
+        //add to local cache for faster lookup
+        publicationCache.put(publication.getPmid(), publicationId);
+        return publicationId;
     }    
     
     
@@ -289,9 +406,11 @@ public class NihmsPassClientService {
      * @return
      */
     public URI createSubmission(Submission submission) {
-        URI submissionUri = client.createResource(submission);
-        LOG.info("New Submission created with URI {}", submissionUri);   
-        return submissionUri;
+        URI submissionId = client.createResource(submission);
+        LOG.info("New Submission created with URI {}", submissionId);          
+        String key = userIdPubIdKey(submission.getUser(), submission.getPublication());
+        userPubSubsCache.addToOrCreateEntry(key,submissionId);        
+        return submissionId;
     }
     
 
@@ -300,55 +419,78 @@ public class NihmsPassClientService {
      * @return
      */
     public URI createRepositoryCopy(RepositoryCopy repositoryCopy) {
-        URI repositoryCopyUri = client.createResource(repositoryCopy);
-        LOG.info("New RepositoryCopy created with URI {}", repositoryCopyUri);   
-        return repositoryCopyUri;
+        URI repositoryCopyId = client.createResource(repositoryCopy);
+        LOG.info("New RepositoryCopy created with URI {}", repositoryCopyId);  
+        nihmsRepoCopyCache.put(repositoryCopy.getPublication(), repositoryCopyId); 
+        return repositoryCopyId;
     }
 
-
     /**
+     * 
      * @param publication
+     * @return true if record needed to be updated, false if no update
      */
-    public void updatePublication(Publication publication) {
+    public boolean updatePublication(Publication publication) {
         Publication origPublication = (Publication) client.readResource(publication.getId(), Publication.class);
         if (!origPublication.equals(publication)){
             client.updateResource(publication);
-            LOG.info("Publication with URI {} was updated ", publication.getId());    
-        }        
+            LOG.info("Publication with URI {} was updated ", publication.getId());   
+            return true;
+        }     
+        return false;
     }
     
     
     /**
      * @param submission
+     * @return true if record needed to be updated, false if no update
      */
-    public void updateSubmission(Submission submission) {
+    public boolean updateSubmission(Submission submission) {
         Submission origSubmission = (Submission) client.readResource(submission.getId(), Submission.class);
         if (!origSubmission.equals(submission)){
             client.updateResource(submission);
-            LOG.info("Submission with URI {} was updated ", submission.getId());    
-        }        
+            
+            //shouldnt be necessary, but just to be sure... make sure this is in cache:
+            String key = userIdPubIdKey(submission.getUser(), submission.getPublication());
+            userPubSubsCache.addToOrCreateEntry(key,submission.getId());
+            
+            LOG.info("Submission with URI {} was updated ", submission.getId());
+            return true;    
+        }      
+        return false;  
     }
     
 
     /**
      * @param repositoryCopy
+     * @return true if record needed to be updated, false if no update
      */
-    public void updateRepositoryCopy(RepositoryCopy repositoryCopy) {
+    public boolean updateRepositoryCopy(RepositoryCopy repositoryCopy) {
         RepositoryCopy origRepoCopy = (RepositoryCopy) client.readResource(repositoryCopy.getId(), RepositoryCopy.class);
         if (!origRepoCopy.equals(repositoryCopy)){
             client.updateResource(repositoryCopy);
             LOG.info("RepositoryCopy with URI {} was updated ", repositoryCopy.getId());   
+            return true;
         }        
+        return false;
     }
     
     /**
      * @param deposit
+     * @return true if record needed to be updated, false if no update
      */
-    public void updateDeposit(Deposit deposit) {
+    public boolean updateDeposit(Deposit deposit) {
         Deposit origDeposit = (Deposit) client.readResource(deposit.getId(), Deposit.class);
         if (!origDeposit.equals(deposit)){
             client.updateResource(deposit);
-            LOG.info("Deposit with URI {} was updated ", deposit.getId());    
-        }        
+            LOG.info("Deposit with URI {} was updated ", deposit.getId());      
+            return true;
+        }   
+        return false;     
     }
+    
+    private static String userIdPubIdKey(URI userId, URI pubId) {
+        return userId.toString() + pubId.toString();
+    }
+    
 }

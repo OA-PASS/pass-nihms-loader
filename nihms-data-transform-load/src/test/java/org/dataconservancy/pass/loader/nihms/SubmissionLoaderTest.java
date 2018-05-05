@@ -23,6 +23,7 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
 import org.dataconservancy.pass.client.nihms.NihmsPassClientService;
+import org.dataconservancy.pass.loader.nihms.util.ConfigUtil;
 import org.dataconservancy.pass.model.Deposit;
 import org.dataconservancy.pass.model.Deposit.DepositStatus;
 import org.dataconservancy.pass.model.Publication;
@@ -84,12 +85,13 @@ public class SubmissionLoaderTest {
         submission.setPublication(new URI(sPublicationUri));
         submission.setUser(new URI(sUserUri));
 
-        NihmsSubmissionDTO dto = new NihmsSubmissionDTO();
+        SubmissionDTO dto = new SubmissionDTO();
         dto.setPublication(publication);
         dto.setSubmission(submission);
 
         when(clientServiceMock.createPublication(publication)).thenReturn(new URI(sPublicationUri));
         when(clientServiceMock.createSubmission(submission)).thenReturn(new URI(sSubmissionUri));
+        when(clientServiceMock.findPublicationById(Mockito.eq(publication.getPmid()), Mockito.any())).thenReturn(null);
         
         loader.load(dto);
         
@@ -128,9 +130,12 @@ public class SubmissionLoaderTest {
         submission.setUser(new URI(sUserUri));
         submission.setPublication(publication.getId());
 
-        NihmsSubmissionDTO dto = new NihmsSubmissionDTO();
+        SubmissionDTO dto = new SubmissionDTO();
         dto.setPublication(publication);
         dto.setSubmission(submission);
+
+        URI submissionUri = new URI(sSubmissionUri);
+        when(clientServiceMock.createSubmission(submission)).thenReturn(submissionUri);        
                 
         loader.load(dto);
         
@@ -168,7 +173,7 @@ public class SubmissionLoaderTest {
         submission.setPublication(new URI(sPublicationUri));
         submission.setUser(new URI(sUserUri));
 
-        NihmsSubmissionDTO dto = new NihmsSubmissionDTO();
+        SubmissionDTO dto = new SubmissionDTO();
         dto.setPublication(publication);
         dto.setSubmission(submission);
                 
@@ -210,10 +215,10 @@ public class SubmissionLoaderTest {
         
         RepositoryCopy repositoryCopy = new RepositoryCopy();
         repositoryCopy.setPublication(publication.getId());
-        repositoryCopy.setRepository(TransformUtil.getNihmsRepositoryUri());
+        repositoryCopy.setRepository(ConfigUtil.getNihmsRepositoryUri());
         repositoryCopy.setCopyStatus(CopyStatus.ACCEPTED);
         
-        NihmsSubmissionDTO dto = new NihmsSubmissionDTO();
+        SubmissionDTO dto = new SubmissionDTO();
         dto.setPublication(publication);
         dto.setSubmission(submission);
         dto.setRepositoryCopy(repositoryCopy);
@@ -221,7 +226,10 @@ public class SubmissionLoaderTest {
         SubmissionLoader loader = new SubmissionLoader(clientServiceMock);
 
         URI submissionUri = new URI(sSubmissionUri);
+        URI repositoryCopyUri = new URI(sRepositoryCopyUri);
         when(clientServiceMock.createSubmission(submission)).thenReturn(submissionUri);
+        when(clientServiceMock.createRepositoryCopy(repositoryCopy)).thenReturn(repositoryCopyUri);
+        when(clientServiceMock.findPublicationById(Mockito.eq(publication.getPmid()), Mockito.any())).thenReturn(publication);
         
         //run it
         loader.load(dto);     
@@ -249,7 +257,7 @@ public class SubmissionLoaderTest {
      * @throws Exception
      */
     @Test
-    public void testLoadNewPubNewSubmissionNewRepoCopy() throws Exception {
+    public void testLoadUpdatePubUpdateSubmissionNewRepoCopy() throws Exception {
 
         Publication publication = new Publication();
         publication.setId(new URI(sPublicationUri));
@@ -263,7 +271,7 @@ public class SubmissionLoaderTest {
         
         RepositoryCopy repositoryCopy = new RepositoryCopy();
         repositoryCopy.setPublication(publication.getId());
-        repositoryCopy.setRepository(TransformUtil.getNihmsRepositoryUri());
+        repositoryCopy.setRepository(ConfigUtil.getNihmsRepositoryUri());
         repositoryCopy.setCopyStatus(CopyStatus.ACCEPTED);
         
         Deposit deposit = new Deposit();
@@ -271,7 +279,7 @@ public class SubmissionLoaderTest {
         deposit.setDepositStatus(DepositStatus.ACCEPTED);
         deposit.setRepository(repositoryCopy.getRepository());
         
-        NihmsSubmissionDTO dto = new NihmsSubmissionDTO();
+        SubmissionDTO dto = new SubmissionDTO();
         dto.setPublication(publication);
         dto.setSubmission(submission);
         dto.setRepositoryCopy(repositoryCopy);
@@ -280,7 +288,7 @@ public class SubmissionLoaderTest {
 
         URI repositoryCopyUri = new URI(sRepositoryCopyUri);
         when(clientServiceMock.createRepositoryCopy(repositoryCopy)).thenReturn(repositoryCopyUri);
-        when(clientServiceMock.findDepositBySubmissionAndRepositoryId(submission.getId(), repositoryCopy.getRepository())).thenReturn(deposit);
+        when(clientServiceMock.findNihmsDepositForSubmission(submission.getId())).thenReturn(deposit);
         
         //run it
         loader.load(dto);     
@@ -331,7 +339,7 @@ public class SubmissionLoaderTest {
         expectedEx.expect(RuntimeException.class);
         expectedEx.expectMessage("A null Submission object was passed to the loader.");
         
-        NihmsSubmissionDTO dto = new NihmsSubmissionDTO();        
+        SubmissionDTO dto = new SubmissionDTO();        
         loader.load(dto);
         
         verifyZeroInteractions(clientServiceMock); 

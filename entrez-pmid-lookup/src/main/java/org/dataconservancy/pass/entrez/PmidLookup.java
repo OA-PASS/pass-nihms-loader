@@ -74,7 +74,8 @@ public class PmidLookup {
      */
     public PubMedEntrezRecord retrievePubMedRecord(String pmid) {
         JSONObject jsonObj = retrievePubMedRecordAsJson(pmid);
-        return (jsonObj != null ? new PubMedEntrezRecord(jsonObj) : null);
+        PubMedEntrezRecord pmr = (jsonObj != null ? new PubMedEntrezRecord(jsonObj) : null);
+        return pmr;
     }
 
 

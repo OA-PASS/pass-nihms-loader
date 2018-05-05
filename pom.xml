@@ -7,7 +7,7 @@
   <version>0.1.0-SNAPSHOT</version>
   <packaging>pom</packaging>
 
-  <name>pass-nihms-submission-etl</name>
+  <name>PASS NIHMS Submission Extract-Transform-Load</name>
 
   <properties>
     <scp.port>22</scp.port>
@@ -20,15 +20,16 @@
     <maven-source-plugin.version>3.0.1</maven-source-plugin.version>
     <maven.deploy.plugin.version>2.8.2</maven.deploy.plugin.version>
     <maven.wagon.ssh.version>2.10</maven.wagon.ssh.version>
+    <maven-shade-plugin.version>3.1.0</maven-shade-plugin.version>
   
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <junit.version>4.12</junit.version>
     <http-client.version>4.5.2</http-client.version>
     <commons-io.version>1.3.2</commons-io.version>
     <org-json.version>20180130</org-json.version>
-  	<commons-csv.version>1.5</commons-csv.version>
-  	<slf4j.version>1.7.25</slf4j.version>
-  	<pass-client.version>0.2.0-SNAPSHOT</pass-client.version>
+    <commons-csv.version>1.5</commons-csv.version>
+    <slf4j.version>1.7.25</slf4j.version>
+    <pass-client.version>0.2.0-SNAPSHOT</pass-client.version>
     <logback.version>1.2.3</logback.version>
     <selenium.version>3.11.0</selenium.version>
     <args4j.version>2.33</args4j.version>
@@ -37,12 +38,14 @@
   
   <modules>
     <module>nihms-data-harvest</module>
+    <module>nihms-data-harvest-cli</module>
     <module>nihms-data-transform-load</module>
+    <module>nihms-data-transform-load-cli</module>
     <module>entrez-pmid-lookup</module>
     <module>nihms-pass-client</module>
-    <module>nihms-submission-etl-integration</module>
-    <module>nihms-submission-etl-cli</module>
-    <module>nihms-submission-etl-util</module>
+    <module>nihms-etl-integration</module>
+    <module>nihms-etl-model</module>
+    <module>nihms-etl-util</module>
   </modules>
 
   <build>    
@@ -75,6 +78,12 @@
           <artifactId>maven-surefire-plugin</artifactId>
           <version>${maven-surefire-plugin.version}</version>
         </plugin>
+    
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-shade-plugin</artifactId>
+          <version>${maven-shade-plugin.version}</version>
+        </plugin>
         
         <plugin>
           <groupId>io.fabric8</groupId>
@@ -101,27 +110,27 @@
   <dependencyManagement>
     <dependencies>
       <dependency>
-	      <groupId>org.dataconservancy.pass</groupId>
-	      <artifactId>pass-client-api</artifactId>
-	    <version>${pass-client.version}</version>
+        <groupId>org.dataconservancy.pass</groupId>
+        <artifactId>pass-client-api</artifactId>
+        <version>${pass-client.version}</version>
       </dependency>
       
       <dependency>
-	      <groupId>org.dataconservancy.pass</groupId>
-	      <artifactId>pass-model</artifactId>
-	    <version>${pass-client.version}</version>
+        <groupId>org.dataconservancy.pass</groupId>
+        <artifactId>pass-model</artifactId>
+        <version>${pass-client.version}</version>
       </dependency>
       
       <dependency>
         <groupId>org.dataconservancy.pass</groupId>
         <artifactId>pass-model-nihms</artifactId>
-	    <version>${pass-client.version}</version>
+        <version>${pass-client.version}</version>
       </dependency>
       
       <dependency>
-	    <groupId>org.dataconservancy.pass</groupId>
+        <groupId>org.dataconservancy.pass</groupId>
         <artifactId>pass-data-client</artifactId>
-	    <version>${pass-client.version}</version>
+        <version>${pass-client.version}</version>
       </dependency>
       
       <dependency>
@@ -150,10 +159,10 @@
       
       <dependency>
         <groupId>org.apache.commons</groupId>
-	    <artifactId>commons-csv</artifactId>
-	    <version>${commons-csv.version}</version>
-	  </dependency>
-	    
+        <artifactId>commons-csv</artifactId>
+        <version>${commons-csv.version}</version>
+     </dependency>
+    
       <dependency>
         <groupId>org.seleniumhq.selenium</groupId>
         <artifactId>selenium-firefox-driver</artifactId>
@@ -171,7 +180,7 @@
         <artifactId>args4j</artifactId>
         <version>${args4j.version}</version>
       </dependency>
-	
+
       <dependency>
         <groupId>junit</groupId>
         <artifactId>junit</artifactId>

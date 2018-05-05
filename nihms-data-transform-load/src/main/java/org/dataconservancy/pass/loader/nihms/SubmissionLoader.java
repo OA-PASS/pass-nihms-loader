@@ -34,6 +34,7 @@ public class SubmissionLoader {
     private static final Logger LOG = LoggerFactory.getLogger(SubmissionLoader.class);
     
     private NihmsPassClientService clientService;
+        
 
     /**
      * Initiates with default client service
@@ -57,7 +58,7 @@ public class SubmissionLoader {
      * @param dto
      */
     //TODO: need to add the code for dealing with conflicts in Fedora once that functionality is added to the pass-client
-    public void load(NihmsSubmissionDTO dto) {
+    public void load(SubmissionDTO dto) {
         if (dto==null || dto.getSubmission()==null) {
             throw new RuntimeException("A null Submission object was passed to the loader.");
         }
@@ -68,15 +69,17 @@ public class SubmissionLoader {
         URI publicationUri = publication.getId();
         if (publicationUri==null) {
             publicationUri = clientService.createPublication(publication);
+            publication.setId(publicationUri);
         } else {
             clientService.updatePublication(publication);
         }
-        
+
         Submission submission = dto.getSubmission();
         URI submissionUri = submission.getId();
         if (submissionUri==null) {
             submission.setPublication(publicationUri);
             submissionUri = clientService.createSubmission(submission);
+            submission.setId(submissionUri);
         } else {
             clientService.updateSubmission(submission);
         }
@@ -87,17 +90,19 @@ public class SubmissionLoader {
             if (repositoryCopyUri==null) {
                 repositoryCopy.setPublication(publicationUri);
                 clientService.createRepositoryCopy(repositoryCopy);
+                repositoryCopy.setId(repositoryCopyUri);
             } else {
                 clientService.updateRepositoryCopy(repositoryCopy);
             }
             
             // If repository copy is changing, check Deposit to make sure the RepositoryCopyId is present
-            Deposit deposit = clientService.findDepositBySubmissionAndRepositoryId(submission.getId(), TransformUtil.getNihmsRepositoryUri());
+            Deposit deposit = clientService.findNihmsDepositForSubmission(submission.getId());
             if (deposit!=null && deposit.getRepositoryCopy()==null) {
                 deposit.setRepositoryCopy(repositoryCopyUri);
                 clientService.updateDeposit(deposit);
             }
         }
-    }
+        
+    }    
     
 }

@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -56,13 +57,13 @@ import static org.mockito.Mockito.when;
 @SuppressWarnings({"unchecked", "rawtypes"})
 public class NihmsPassClientServiceTest {
     
-    private static final String sGrantUri = "https://example.com/fedora/grants/1";
-    private static final String sSubmissionUri = "https://example.com/fedora/submissions/1";
-    private static final String sUserUri = "https://example.com/fedora/users/1";
-    private static final String sDepositUri = "https://example.com/fedora/deposits/1";
-    private static final String sRepositoryUri = "https://example.com/fedora/repositories/1";
-    private static final String sPublicationUri = "https://example.com/fedora/publications/1";
-    private static final String sRepositoryCopyUri = "https://example.com/fedora/repositoryCopies/1";
+    private static final String sGrantId = "https://example.com/fedora/grants/1";
+    private static final String sSubmissionId = "https://example.com/fedora/submissions/1";
+    private static final String sUserId = "https://example.com/fedora/users/1";
+    private static final String sDepositId = "https://example.com/fedora/deposits/1";
+    private static final String sRepositoryId = "https://example.com/fedora/repositories/1";
+    private static final String sPublicationId = "https://example.com/fedora/publications/1";
+    private static final String sRepositoryCopyId = "https://example.com/fedora/repositoryCopies/1";
     private static final String pmid = "12345678";
     private static final String doi = "https://doi.org/10.000/abcde";
     private static final String awardNumber = "RH 1234";
@@ -76,25 +77,30 @@ public class NihmsPassClientServiceTest {
         
     private NihmsPassClientService clientService;
     
-    private URI grantUri;
-    private URI userUri;
-    private URI submissionUri;
-    private URI depositUri;
-    private URI repositoryUri;
-    private URI publicationUri;
-    private URI repositoryCopyUri;
+    private URI grantId;
+    private URI userId;
+    private URI submissionId;
+    private URI depositId;
+    private URI repositoryId;
+    private URI publicationId;
+    private URI repositoryCopyId;
     
     @Before 
     public void initMocks() throws Exception{
         MockitoAnnotations.initMocks(this);
         clientService = new NihmsPassClientService(mockClient);
-        grantUri = new URI(sGrantUri);
-        userUri = new URI(sUserUri);
-        submissionUri = new URI(sSubmissionUri);
-        depositUri = new URI(sDepositUri);
-        repositoryUri = new URI(sRepositoryUri);
-        publicationUri = new URI(sPublicationUri);
-        repositoryCopyUri = new URI(sRepositoryCopyUri);
+        grantId = new URI(sGrantId);
+        userId = new URI(sUserId);
+        submissionId = new URI(sSubmissionId);
+        depositId = new URI(sDepositId);
+        repositoryId = new URI(sRepositoryId);
+        publicationId = new URI(sPublicationId);
+        repositoryCopyId = new URI(sRepositoryCopyId);
+    }
+    
+    @After
+    public void clearCache() {
+        clientService.clearCache();
     }
     
     
@@ -109,7 +115,7 @@ public class NihmsPassClientServiceTest {
         
         when(mockClient.findByAttribute(eq(Grant.class), eq("awardNumber"), eq(awardNumber))).thenReturn(null);
 
-        URI grant = clientService.findGrantByAwardNumber(awardNumber);
+        Grant grant = clientService.findGrantByAwardNumber(awardNumber);
         
         verify(mockClient, times(2)).findByAttribute(eq(Grant.class), eq("awardNumber"), awardNumCaptor.capture()); 
         
@@ -125,13 +131,16 @@ public class NihmsPassClientServiceTest {
      */
     @Test
     public void testFindGrantByAwardNumberHasMatch() throws Exception {
-                
-        when(mockClient.findByAttribute(eq(Grant.class), eq("awardNumber"), eq(awardNumber))).thenReturn(grantUri);
+        Grant grant = new Grant();
+        grant.setId(new URI(sGrantId));
+        grant.setAwardNumber(awardNumber);
 
-        URI matchedGrantUri = clientService.findGrantByAwardNumber(awardNumber);
+        when(mockClient.findByAttribute(eq(Grant.class), eq("awardNumber"), eq(awardNumber))).thenReturn(grant.getId());
+        when(mockClient.readResource(any(), eq(Grant.class))).thenReturn(grant);
+
+        Grant matchedGrant = clientService.findGrantByAwardNumber(awardNumber);
         verify(mockClient).findByAttribute(eq(Grant.class), eq("awardNumber"), eq(awardNumber)); 
-        assertEquals(grantUri, matchedGrantUri);
-        
+        assertEquals(grant, matchedGrant);        
     }
 
     
@@ -141,13 +150,13 @@ public class NihmsPassClientServiceTest {
     @Test
     public void testFindPublicationByIdPmidMatch() throws Exception {
         Publication publication = new Publication();
-        publication.setId(publicationUri);
+        publication.setId(publicationId);
         publication.setDoi(doi);
         publication.setTitle(title);
         publication.setPmid(pmid);
         
-        when(mockClient.findByAttribute(eq(Publication.class), eq("pmid"), eq(pmid))).thenReturn(publicationUri);
-        when(mockClient.readResource(eq(publicationUri), eq(Publication.class))).thenReturn(publication);
+        when(mockClient.findByAttribute(eq(Publication.class), eq("pmid"), eq(pmid))).thenReturn(publicationId);
+        when(mockClient.readResource(eq(publicationId), eq(Publication.class))).thenReturn(publication);
         
         Publication matchedPublication = clientService.findPublicationById(pmid, doi);
         
@@ -161,14 +170,14 @@ public class NihmsPassClientServiceTest {
     @Test
     public void testFindPublicationByIdDoiMatch() throws Exception {
         Publication publication = new Publication();
-        publication.setId(publicationUri);
+        publication.setId(publicationId);
         publication.setDoi(doi);
         publication.setTitle(title);
         publication.setPmid(pmid);
         
         when(mockClient.findByAttribute(Publication.class, "pmid", pmid)).thenReturn(null);
-        when(mockClient.findByAttribute(Publication.class, "doi", doi)).thenReturn(publicationUri);
-        when(mockClient.readResource(publicationUri, Publication.class)).thenReturn(publication);
+        when(mockClient.findByAttribute(Publication.class, "doi", doi)).thenReturn(publicationId);
+        when(mockClient.readResource(publicationId, Publication.class)).thenReturn(publication);
         
         Publication matchedPublication = clientService.findPublicationById(pmid, doi);
         
@@ -190,6 +199,7 @@ public class NihmsPassClientServiceTest {
         
         verify(mockClient, times(2)).findByAttribute(eq(Publication.class), Mockito.anyString(), any());
         assertNull(matchedPublication);         
+                
     }  
 
     
@@ -199,17 +209,21 @@ public class NihmsPassClientServiceTest {
     @Test
     public void testFindRepositoryCopyByRepoAndPubIdHasMatch() throws Exception {
         RepositoryCopy repoCopy = new RepositoryCopy();
-        repoCopy.setId(repositoryCopyUri);
-        repoCopy.setPublication(publicationUri);
+        repoCopy.setId(repositoryCopyId);
+        repoCopy.setPublication(publicationId);
         
-        Set<URI> repositoryCopyUris = new HashSet<URI>();
-        repositoryCopyUris.add(repositoryCopyUri);
+        Set<URI> repositoryCopyIds = new HashSet<URI>();
+        repositoryCopyIds.add(repositoryCopyId);
         
-        when(mockClient.findAllByAttributes(eq(RepositoryCopy.class), any())).thenReturn(repositoryCopyUris);
-        when(mockClient.readResource(eq(repositoryCopyUri), eq(RepositoryCopy.class))).thenReturn(repoCopy);
+        when(mockClient.findAllByAttributes(eq(RepositoryCopy.class), any())).thenReturn(repositoryCopyIds);
+        when(mockClient.readResource(eq(repositoryCopyId), eq(RepositoryCopy.class))).thenReturn(repoCopy);
         
-        RepositoryCopy matchedRepoCopy = clientService.findRepositoryCopyByRepoAndPubId(repositoryUri, publicationUri);
+        RepositoryCopy matchedRepoCopy = clientService.findNihmsRepositoryCopyForPubId(publicationId);
+        assertEquals(repoCopy, matchedRepoCopy);       
         
+        //check it doesnt pull from elasticsearch the second time
+        matchedRepoCopy = clientService.findNihmsRepositoryCopyForPubId(publicationId);    
+        verify(mockClient, times(1)).findAllByAttributes(eq(RepositoryCopy.class), any());     
         assertEquals(repoCopy, matchedRepoCopy);       
     }
 
@@ -221,7 +235,7 @@ public class NihmsPassClientServiceTest {
     public void testFindRepositoryCopyByRepoAndPubIdNoMatch() throws Exception {
         when(mockClient.findAllByAttributes(eq(RepositoryCopy.class), any())).thenReturn(null);
         
-        RepositoryCopy matchedRepoCopy = clientService.findRepositoryCopyByRepoAndPubId(repositoryUri, publicationUri);
+        RepositoryCopy matchedRepoCopy = clientService.findNihmsRepositoryCopyForPubId(publicationId);
         
         assertNull(matchedRepoCopy);       
     }
@@ -235,34 +249,34 @@ public class NihmsPassClientServiceTest {
     @Test
     public void testFindExistingSubmissionPubGrantHasMatch() throws Exception {
         
-        URI submissionUri2 = new URI(sSubmissionUri + "2");
+        URI submissionId2 = new URI(sSubmissionId + "2");
         
         Set<URI> submissions = new HashSet<URI>();
-        submissions.add(submissionUri);
-        submissions.add(submissionUri2);
+        submissions.add(submissionId);
+        submissions.add(submissionId2);
 
         Submission submission = new Submission();
-        submission.setId(submissionUri);
+        submission.setId(submissionId);
 
         Submission submission2 = new Submission();
-        submission.setId(submissionUri2);
+        submission.setId(submissionId2);
         
         Grant grant = new Grant();
-        grant.setId(grantUri);
-        grant.setPi(userUri);
+        grant.setId(grantId);
+        grant.setPi(userId);
 
         when(mockClient.findAllByAttributes(eq(Submission.class), any())).thenReturn(submissions);
         when(mockClient.readResource(any(), eq(Submission.class))).thenReturn(submission).thenReturn(submission2);
         
-        List<Submission> matchedSubmissions = clientService.findSubmissionsByPublicationAndUserId(publicationUri, userUri);
+        List<Submission> matchedSubmissions = clientService.findSubmissionsByPublicationAndUserId(publicationId, userId);
         
         ArgumentCaptor<Map> argumentCaptor = ArgumentCaptor.forClass(Map.class);
         
         verify(mockClient).findAllByAttributes(eq(Submission.class), argumentCaptor.capture());
         
         assertEquals(2, argumentCaptor.getValue().size());
-        assertEquals(userUri, argumentCaptor.getValue().get("user"));
-        assertEquals(publicationUri, argumentCaptor.getValue().get("publication"));
+        assertEquals(userId, argumentCaptor.getValue().get("user"));
+        assertEquals(publicationId, argumentCaptor.getValue().get("publication"));
         
         assertEquals(submission, matchedSubmissions.get(0));
         assertEquals(submission2, matchedSubmissions.get(1));
@@ -280,15 +294,15 @@ public class NihmsPassClientServiceTest {
         
         when(mockClient.findAllByAttributes(eq(Submission.class), any())).thenReturn(new HashSet<URI>());
         
-        List<Submission> matchedSubmissions = clientService.findSubmissionsByPublicationAndUserId(publicationUri, userUri);
+        List<Submission> matchedSubmissions = clientService.findSubmissionsByPublicationAndUserId(publicationId, userId);
         
         ArgumentCaptor<Map> argumentCaptor = ArgumentCaptor.forClass(Map.class);
         
         verify(mockClient).findAllByAttributes(eq(Submission.class), argumentCaptor.capture());
         
         assertEquals(2, argumentCaptor.getValue().size());
-        assertEquals(userUri, argumentCaptor.getValue().get("user"));
-        assertEquals(publicationUri, argumentCaptor.getValue().get("publication"));
+        assertEquals(userId, argumentCaptor.getValue().get("user"));
+        assertEquals(publicationId, argumentCaptor.getValue().get("publication"));
         
         assertTrue(matchedSubmissions.size()==0);
         
@@ -301,18 +315,18 @@ public class NihmsPassClientServiceTest {
      */
     @Test
     public void testFindDepositBySubmissionAndRepositoryIdHasMatch() throws Exception {
-        Set<URI> depositUris = new HashSet<URI>();
-        depositUris.add(depositUri);
+        Set<URI> depositIds = new HashSet<URI>();
+        depositIds.add(depositId);
         
         Deposit deposit = new Deposit();
-        deposit.setId(depositUri);
-        deposit.setSubmission(submissionUri);
-        deposit.setRepository(repositoryUri);
+        deposit.setId(depositId);
+        deposit.setSubmission(submissionId);
+        deposit.setRepository(repositoryId);
 
-        when(mockClient.findAllByAttributes(eq(Deposit.class), any())).thenReturn(depositUris);
-        when(mockClient.readResource(eq(depositUri), eq(Deposit.class))).thenReturn(deposit);
+        when(mockClient.findAllByAttributes(eq(Deposit.class), any())).thenReturn(depositIds);
+        when(mockClient.readResource(eq(depositId), eq(Deposit.class))).thenReturn(deposit);
         
-        Deposit matchedDeposit = clientService.findDepositBySubmissionAndRepositoryId(submissionUri, repositoryUri);
+        Deposit matchedDeposit = clientService.findNihmsDepositForSubmission(submissionId);
         
         verify(mockClient).findAllByAttributes(eq(Deposit.class), any());
         verify(mockClient).readResource(any(), eq(Deposit.class));
@@ -327,14 +341,14 @@ public class NihmsPassClientServiceTest {
      */
     @Test(expected=RuntimeException.class)
     public void testFindDepositBySubmissionAndRepositoryIdExtraMatch() throws Exception {
-        URI depositUri2 = new URI(sDepositUri + "2");
-        Set<URI> depositUris = new HashSet<URI>();
-        depositUris.add(depositUri);
-        depositUris.add(depositUri2);
+        URI depositId2 = new URI(sDepositId + "2");
+        Set<URI> depositIds = new HashSet<URI>();
+        depositIds.add(depositId);
+        depositIds.add(depositId2);
 
-        when(mockClient.findAllByAttributes(eq(Deposit.class), any())).thenReturn(depositUris);
+        when(mockClient.findAllByAttributes(eq(Deposit.class), any())).thenReturn(depositIds);
         
-        clientService.findDepositBySubmissionAndRepositoryId(submissionUri, repositoryUri);
+        clientService.findNihmsDepositForSubmission(submissionId);
         
     }
     
@@ -345,15 +359,16 @@ public class NihmsPassClientServiceTest {
     @Test
     public void testCreateSubmission() {
         Submission submission = new Submission();
+        submission.setUser(userId);
+        submission.setPublication(publicationId);
         
-        when(mockClient.createResource(eq(submission))).thenReturn(submissionUri);
+        when(mockClient.createResource(eq(submission))).thenReturn(submissionId);
         
-        URI newSubmissionUri = clientService.createSubmission(submission);
+        URI newSubmissionId = clientService.createSubmission(submission);
         
         verify(mockClient).createResource(eq(submission));
         
-        assertEquals(submissionUri, newSubmissionUri);
-        
+        assertEquals(submissionId, newSubmissionId);
     }
     
     
@@ -363,15 +378,19 @@ public class NihmsPassClientServiceTest {
     @Test
     public void testUpdateSubmissionHasChanges() {
         Submission submission = new Submission();
-        submission.setId(submissionUri);
+        submission.setId(submissionId);
+        submission.setUser(userId);
+        submission.setPublication(publicationId);
         submission.setSubmitted(false);
 
         //make a submission that is different
         Submission submissionEdited = new Submission();
-        submissionEdited.setId(submissionUri);
+        submissionEdited.setId(submissionId);
+        submissionEdited.setUser(userId);
+        submissionEdited.setPublication(publicationId);
         submissionEdited.setSubmitted(true);
         
-        when(mockClient.readResource(eq(submissionUri), eq(Submission.class))).thenReturn(submission);
+        when(mockClient.readResource(eq(submissionId), eq(Submission.class))).thenReturn(submission);
         clientService.updateSubmission(submissionEdited);
         verify(mockClient).updateResource(eq(submissionEdited));
         
@@ -384,9 +403,9 @@ public class NihmsPassClientServiceTest {
     @Test
     public void testUpdateSubmissionNoChanges() {
         Submission submission = new Submission();
-        submission.setId(submissionUri);
+        submission.setId(submissionId);
 
-        when(mockClient.readResource(eq(submissionUri), eq(Submission.class))).thenReturn(submission);
+        when(mockClient.readResource(eq(submissionId), eq(Submission.class))).thenReturn(submission);
         //try to update submission with no changes
         clientService.updateSubmission(submission);
         verify(mockClient, never()).updateResource(any());

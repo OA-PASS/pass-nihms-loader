@@ -9,7 +9,7 @@
   </parent>
   
   <artifactId>entrez-pmid-lookup</artifactId>
-  <name>entrez-pmid-lookup</name>
+  <name>Entrez PMID Lookup</name>
 
   <dependencies>
     <dependency>

@@ -28,6 +28,9 @@ import org.junit.rules.ExpectedException;
 import org.dataconservancy.pass.client.nihms.NihmsPassClientService;
 import org.dataconservancy.pass.entrez.PmidLookup;
 import org.dataconservancy.pass.entrez.PubMedEntrezRecord;
+import org.dataconservancy.pass.loader.nihms.model.NihmsPublication;
+import org.dataconservancy.pass.loader.nihms.model.NihmsStatus;
+import org.dataconservancy.pass.loader.nihms.util.ConfigUtil;
 import org.dataconservancy.pass.model.Grant;
 import org.dataconservancy.pass.model.Publication;
 import org.dataconservancy.pass.model.RepositoryCopy.CopyStatus;
@@ -84,14 +87,14 @@ public class SubmissionTransformerTest {
     @Mock
     private PubMedEntrezRecord pubMedRecordMock;
     
-    private SubmissionTransformer transformer;
+    private NihmsPublicationToSubmission transformer;
     
     @Before 
     public void init() {
         System.setProperty("nihms.pass.uri", sNihmsRepositoryUri);
         System.setProperty("pmc.url.template", pmcIdTemplateUrl);
         MockitoAnnotations.initMocks(this);
-        transformer = new SubmissionTransformer(clientServiceMock, pmidLookupMock);
+        transformer = new NihmsPublicationToSubmission(clientServiceMock, pmidLookupMock);
     }
     
     /**
@@ -107,8 +110,7 @@ public class SubmissionTransformerTest {
         Grant grant = newTestGrant();
         
         //Mocking that we have a valid grant URI, PMID, and DOI to use.
-        when(clientServiceMock.findGrantByAwardNumber(awardNumber)).thenReturn(grant.getId());
-        when(clientServiceMock.readGrant(grant.getId())).thenReturn(grant);
+        when(clientServiceMock.findGrantByAwardNumber(awardNumber)).thenReturn(grant);
         when(clientServiceMock.findPublicationById(pmid, doi)).thenReturn(null);
         when(clientServiceMock.findJournalByIssn(issn)).thenReturn(new URI(sJournalUri));
         
@@ -116,10 +118,10 @@ public class SubmissionTransformerTest {
 
         pmrMockWhenValues();
         
-        NihmsSubmissionDTO dto = transformer.transform(pub);        
+        SubmissionDTO dto = transformer.transform(pub);        
 
         checkPmrValues(dto);
-        assertEquals(TransformUtil.getNihmsRepositoryUri(), dto.getSubmission().getRepositories().get(0));
+        assertEquals(ConfigUtil.getNihmsRepositoryUri(), dto.getSubmission().getRepositories().get(0));
         assertNull(dto.getPublication().getId());
         assertNull(dto.getSubmission().getId());
         assertNull(dto.getRepositoryCopy());
@@ -142,18 +144,17 @@ public class SubmissionTransformerTest {
         pub.setTaggingCompleteDate(depositDate);
 
         Grant grant = newTestGrant();
-        when(clientServiceMock.findGrantByAwardNumber(awardNumber)).thenReturn(grant.getId());
-        when(clientServiceMock.readGrant(grant.getId())).thenReturn(grant);
+        when(clientServiceMock.findGrantByAwardNumber(awardNumber)).thenReturn(grant);
         when(clientServiceMock.findPublicationById(pmid, doi)).thenReturn(null);
         when(clientServiceMock.findJournalByIssn(issn)).thenReturn(new URI(sJournalUri));
         when(pmidLookupMock.retrievePubMedRecord(pmid)).thenReturn(pubMedRecordMock);
 
         pmrMockWhenValues();
         
-        NihmsSubmissionDTO dto = transformer.transform(pub);        
+        SubmissionDTO dto = transformer.transform(pub);        
 
         checkPmrValues(dto);
-        assertEquals(TransformUtil.getNihmsRepositoryUri(), dto.getSubmission().getRepositories().get(0));
+        assertEquals(ConfigUtil.getNihmsRepositoryUri(), dto.getSubmission().getRepositories().get(0));
         
         assertNull(dto.getPublication().getId());
         assertNull(dto.getSubmission().getId());
@@ -188,8 +189,7 @@ public class SubmissionTransformerTest {
         submissions.add(submission);
         
         Grant grant = newTestGrant();
-        when(clientServiceMock.findGrantByAwardNumber(awardNumber)).thenReturn(grant.getId());
-        when(clientServiceMock.readGrant(grant.getId())).thenReturn(grant);
+        when(clientServiceMock.findGrantByAwardNumber(awardNumber)).thenReturn(grant);
         
         when(clientServiceMock.findPublicationById(pmid, doi)).thenReturn(publication);
         when(clientServiceMock.findSubmissionsByPublicationAndUserId(publication.getId(), grant.getPi())).thenReturn(submissions);
@@ -198,10 +198,10 @@ public class SubmissionTransformerTest {
 
         pmrMockWhenValues();
         
-        NihmsSubmissionDTO dto = transformer.transform(pub);
+        SubmissionDTO dto = transformer.transform(pub);
 
         checkPmrValues(dto);
-        assertEquals(TransformUtil.getNihmsRepositoryUri(), dto.getSubmission().getRepositories().get(0));
+        assertEquals(ConfigUtil.getNihmsRepositoryUri(), dto.getSubmission().getRepositories().get(0));
         
         assertEquals(true, dto.getSubmission().getSubmitted());
         assertNotNull(dto.getSubmission().getSubmittedDate());
@@ -237,8 +237,7 @@ public class SubmissionTransformerTest {
         submissions.add(submission);
         
         Grant grant = newTestGrant();
-        when(clientServiceMock.findGrantByAwardNumber(awardNumber)).thenReturn(grant.getId());
-        when(clientServiceMock.readGrant(grant.getId())).thenReturn(grant);
+        when(clientServiceMock.findGrantByAwardNumber(awardNumber)).thenReturn(grant);
         
         when(clientServiceMock.findPublicationById(pmid, doi)).thenReturn(publication);
         when(clientServiceMock.findSubmissionsByPublicationAndUserId(publication.getId(), grant.getPi())).thenReturn(submissions);
@@ -247,12 +246,12 @@ public class SubmissionTransformerTest {
 
         pmrMockWhenValues();
         
-        NihmsSubmissionDTO dto = transformer.transform(pub);
+        SubmissionDTO dto = transformer.transform(pub);
 
         checkPmrValues(dto);
         
         assertEquals(false, dto.getSubmission().getSubmitted());
-        assertTrue(!dto.getSubmission().getRepositories().contains(TransformUtil.getNihmsRepositoryUri()));
+        assertTrue(!dto.getSubmission().getRepositories().contains(ConfigUtil.getNihmsRepositoryUri()));
         assertTrue(dto.getSubmission().getGrants().contains(grant.getId()));
         
         assertNull(dto.getSubmission().getSubmittedDate());
@@ -280,7 +279,7 @@ public class SubmissionTransformerTest {
     }
     
     
-    private void checkPmrValues(NihmsSubmissionDTO dto) {
+    private void checkPmrValues(SubmissionDTO dto) {
         assertEquals(title, dto.getPublication().getTitle());
         assertEquals(volume, dto.getPublication().getVolume());
         assertEquals(issue, dto.getPublication().getIssue());
@@ -340,7 +339,7 @@ public class SubmissionTransformerTest {
         submission.setPublication(new URI(sPublicationUri));
         
         List<URI> repositories = new ArrayList<URI>();
-        repositories.add(TransformUtil.getNihmsRepositoryUri());
+        repositories.add(ConfigUtil.getNihmsRepositoryUri());
         
         submission.setRepositories(repositories);
         
@@ -351,7 +350,7 @@ public class SubmissionTransformerTest {
     
     
     private NihmsPublication newTestPub() {
-        return new NihmsPublication(NihmsStatus.COMPLIANT, pmid, awardNumber, null, null, null, null, null, null);
+        return new NihmsPublication(NihmsStatus.COMPLIANT, pmid, awardNumber, null, null, null, null, null, null, null);
     }
     
 }

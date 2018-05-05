@@ -24,6 +24,9 @@ import java.util.function.Consumer;
 
 import org.junit.Test;
 
+import org.dataconservancy.pass.loader.nihms.model.NihmsPublication;
+import org.dataconservancy.pass.loader.nihms.model.NihmsStatus;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -45,15 +48,15 @@ public class NihmsCsvProcessorTest {
     public void testReadCsv() throws URISyntaxException {
         Path resource = Paths.get(NihmsCsvProcessorTest.class.getResource("/compliant_NihmsData.csv").toURI());
 
-        NihmsCsvProcessor processor = new NihmsCsvProcessor(resource);
+        NihmsCsvProcessor processor = new NihmsCsvProcessor(resource, NihmsStatus.COMPLIANT);
         
         Consumer<NihmsPublication> consumer = pub -> {
             assertTrue(pub != null);
             count = count + 1;
             if (count == 1) {
                 assertEquals("12345678", pub.getPmid());
-                assertEquals("3453453", pub.getPmcId()); 
-                assertEquals("678678", pub.getNihmsId());
+                assertEquals("PMC3453453", pub.getPmcId()); 
+                assertEquals("NIHMS678678", pub.getNihmsId());
                 assertEquals("A12 BC000001", pub.getGrantNumber());
                 assertEquals("4/4/2016", pub.getFileDepositedDate());
                 assertEquals("4/5/2016", pub.getInitialApprovalDate());
@@ -64,8 +67,8 @@ public class NihmsCsvProcessorTest {
             }
             if (count == 2) {
                 assertEquals("34567890", pub.getPmid());
-                assertEquals("4564564", pub.getPmcId()); 
-                assertEquals("789789", pub.getNihmsId());
+                assertEquals("PMC4564564", pub.getPmcId()); 
+                assertEquals("NIHMS789789", pub.getNihmsId());
                 assertEquals("B23 DE000002", pub.getGrantNumber());  
                 assertEquals("7/6/2017", pub.getFileDepositedDate());
                 assertEquals("7/6/2017", pub.getInitialApprovalDate());
@@ -76,8 +79,8 @@ public class NihmsCsvProcessorTest {
             }
             if (count == 3) {
                 assertEquals("34567890", pub.getPmid());
-                assertEquals("4564564", pub.getPmcId()); 
-                assertEquals("789789", pub.getNihmsId());
+                assertEquals("PMC4564564", pub.getPmcId()); 
+                assertEquals("NIHMS789789", pub.getNihmsId());
                 assertEquals("R15 LM239488", pub.getGrantNumber()); 
                 assertEquals("7/6/2017", pub.getFileDepositedDate());
                 assertEquals("7/6/2017", pub.getInitialApprovalDate());
@@ -107,7 +110,7 @@ public class NihmsCsvProcessorTest {
     public void testBadHeadingDetection() {
         String filename = "/compliant_BadHeadings.csv";
         String filepath = NihmsCsvProcessorTest.class.getResource(filename).toString();
-        new NihmsCsvProcessor(Paths.get(filepath));        
+        new NihmsCsvProcessor(Paths.get(filepath), NihmsStatus.COMPLIANT);        
     }
 
     /**
@@ -117,7 +120,7 @@ public class NihmsCsvProcessorTest {
     public void testBadPath() {
         String filename = "/compliant_DoesntExist.csv";
         String filepath = NihmsCsvProcessorTest.class.getResource(filename).toString();
-        new NihmsCsvProcessor(Paths.get(filepath));        
+        new NihmsCsvProcessor(Paths.get(filepath), NihmsStatus.COMPLIANT);        
     }
     
 }

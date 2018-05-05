@@ -29,8 +29,12 @@ import java.util.function.Consumer;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVRecord;
 
+import org.dataconservancy.pass.loader.nihms.model.NihmsPublication;
+import org.dataconservancy.pass.loader.nihms.model.NihmsStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static org.dataconservancy.pass.loader.nihms.util.ProcessingUtil.nullOrEmpty;
 
 /**
  * NIHMS CSV Reader expects a Submissions CSV from the NIHMS site and will read it into a List,
@@ -59,6 +63,8 @@ public class NihmsCsvProcessor {
     private static final Integer TAGGINGCOMPLETE_COLNUM = 8;
     private static final String FINALAPPROVAL_HEADING = "NIHMS final approval";
     private static final Integer FINALAPPROVAL_COLNUM = 9;
+    private static final String ARTICLETITLE_HEADING = "Article Title";
+    private static final Integer ARTICLETITLE_COLNUM = 10;
     
     /**
      * Lists expected headers and their column number to support header validation
@@ -73,6 +79,7 @@ public class NihmsCsvProcessor {
         EXPECTED_HEADERS.put(INITIALAPPROVAL_COLNUM, INITIALAPPROVAL_HEADING);
         EXPECTED_HEADERS.put(TAGGINGCOMPLETE_COLNUM, TAGGINGCOMPLETE_HEADING);
         EXPECTED_HEADERS.put(FINALAPPROVAL_COLNUM, FINALAPPROVAL_HEADING);
+        EXPECTED_HEADERS.put(ARTICLETITLE_COLNUM, ARTICLETITLE_HEADING);
     }
     
     /**
@@ -94,12 +101,11 @@ public class NihmsCsvProcessor {
      * Status of NIHMS deposit to pass to NihmsPublication
      */
     private NihmsStatus status = null;    
+        
     
-    
-    
-    public NihmsCsvProcessor(Path filePath) {
+    public NihmsCsvProcessor(Path filePath, NihmsStatus status) {
         this.filePath = filePath;
-        this.status = nihmsStatus(filePath);
+        this.status = status;
     }
        
     /**
@@ -139,12 +145,13 @@ public class NihmsCsvProcessor {
      */
     private void consumeRow(CSVRecord row, Consumer<NihmsPublication> pubConsumer) {
         if (row==null) {return;}
+        if (nullOrEmpty(row.get(PMID_COLNUM))) {return;} //not a valid row
         recCount = recCount + 1;  
         NihmsPublication pub = null;
         try {
             pub = new NihmsPublication(status, row.get(PMID_COLNUM), row.get(GRANTID_COLNUM), row.get(NIHMSID_COLNUM), 
                                          row.get(PMCID_COLNUM), row.get(FILEDEPOSIT_COLNUM), row.get(INITIALAPPROVAL_COLNUM), 
-                                         row.get(TAGGINGCOMPLETE_COLNUM), row.get(FINALAPPROVAL_COLNUM));
+                                         row.get(TAGGINGCOMPLETE_COLNUM), row.get(FINALAPPROVAL_COLNUM), row.get(ARTICLETITLE_COLNUM));
 
             LOG.info("NIHMS record pmid={} is being processed", pub.getPmid());
             pubConsumer.accept(pub);  
@@ -184,11 +191,11 @@ public class NihmsCsvProcessor {
      * @param path
      * @return
      */
-    private static NihmsStatus nihmsStatus(Path path) {
+    public static NihmsStatus nihmsStatus(Path path) {
         String filename = path.getFileName().toString();
         
         for (NihmsStatus status : NihmsStatus.values()) {
-            if (filename.startsWith(status.getValue())) {
+            if (filename.startsWith(status.toString())) {
                 return status;
             }
           }

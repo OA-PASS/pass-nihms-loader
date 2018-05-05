@@ -7,9 +7,8 @@
     <artifactId>pass-nihms-submission-etl</artifactId>
     <version>0.1.0-SNAPSHOT</version>
   </parent>
-  
   <artifactId>nihms-data-transform-load</artifactId>
-  <name>nihms-data-transform-load</name>
+  <name>NIHMS Data Transform/Load</name>
 
   <dependencies>
     <dependency>
@@ -17,10 +16,16 @@
 	    <artifactId>entrez-pmid-lookup</artifactId>
 	    <version>${project.parent.version}</version>
 	</dependency>
+  
+    <dependency>
+      <groupId>org.dataconservancy.pass</groupId>
+      <artifactId>nihms-etl-util</artifactId>
+	  <version>${project.parent.version}</version>
+    </dependency>
 	
     <dependency>
 	  <groupId>org.dataconservancy.pass</groupId>
-	  <artifactId>nihms-submission-etl-util</artifactId>
+	  <artifactId>nihms-etl-model</artifactId>
 	  <version>${project.parent.version}</version>
 	</dependency>   
 		
