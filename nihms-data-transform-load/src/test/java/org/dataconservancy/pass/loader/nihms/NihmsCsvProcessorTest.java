@@ -105,12 +105,18 @@ public class NihmsCsvProcessorTest {
     /**
      * Check an exception is thrown when there is a bad heading in the spreadsheet. We
      * do not want to process badly formatted data
+     * @throws URISyntaxException 
      */
     @Test(expected=RuntimeException.class)
     public void testBadHeadingDetection() {
         String filename = "/compliant_BadHeadings.csv";
-        String filepath = NihmsCsvProcessorTest.class.getResource(filename).toString();
-        new NihmsCsvProcessor(Paths.get(filepath), NihmsStatus.COMPLIANT);        
+        Path resource = null;
+        try {
+            resource = Paths.get(NihmsCsvProcessorTest.class.getResource(filename).toURI());
+            new NihmsCsvProcessor(resource, NihmsStatus.COMPLIANT); 
+        } catch (URISyntaxException ex) {
+            fail("problem with test file path");
+        }       
     }
 
     /**
@@ -119,8 +125,13 @@ public class NihmsCsvProcessorTest {
     @Test(expected=RuntimeException.class)
     public void testBadPath() {
         String filename = "/compliant_DoesntExist.csv";
-        String filepath = NihmsCsvProcessorTest.class.getResource(filename).toString();
-        new NihmsCsvProcessor(Paths.get(filepath), NihmsStatus.COMPLIANT);        
+        Path resource = null;
+        try {
+            resource = Paths.get(NihmsCsvProcessorTest.class.getResource(filename).toURI());
+            new NihmsCsvProcessor(resource, NihmsStatus.COMPLIANT);     
+        } catch (URISyntaxException ex) {
+            fail("problem with test file path");
+        }
     }
     
 }
