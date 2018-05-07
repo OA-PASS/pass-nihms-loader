@@ -30,5 +30,3 @@ local.properties
 
 # Locally stored "Eclipse launch configurations"
 *.launch
-
-nihms-data-harvest/src/test/resources/geckodriver.exe
