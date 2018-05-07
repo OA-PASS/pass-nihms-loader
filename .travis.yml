@@ -17,7 +17,7 @@ before_install:
   - sudo service sshguard stop
   - sudo service ssh stop
   - sudo service rsyslog stop
-  - if [ "$TRAVIS_PULL_REQUEST" == "false" ] ; then openssl aes-256-cbc -K $encrypted_9f89ff80bfee_key -iv $encrypted_9f89ff80bfee_iv -in settings.tar.enc -out settings.tar -d && tar -xf settings.tar && cat known_hosts >> ~/.ssh/known_hosts ; fi
+  - if [ "$TRAVIS_PULL_REQUEST" == "false" ] ; then openssl aes-256-cbc -K $encrypted_dad403bdd755_key -iv $encrypted_dad403bdd755_iv -in settings.tar.enc.nihmsetl -out settings.tar -d && tar -xf settings.tar && cat known_hosts >> ~/.ssh/known_hosts ; fi
 
 install: mvn install -DskipTests=true -Dmaven.javadoc.skip=true -B -V
 
