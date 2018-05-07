@@ -113,10 +113,15 @@ public class NihmsCsvProcessorTest {
         Path resource = null;
         try {
             resource = Paths.get(NihmsCsvProcessorTest.class.getResource(filename).toURI());
-            new NihmsCsvProcessor(resource, NihmsStatus.COMPLIANT); 
+            
         } catch (URISyntaxException ex) {
             fail("problem with test file path");
-        }       
+        }   
+        Consumer<NihmsPublication> consumer = pub -> {
+            fail();
+        };
+        NihmsCsvProcessor processor = new NihmsCsvProcessor(resource, NihmsStatus.COMPLIANT);
+        processor.processCsv(consumer);        
     }
 
     /**
@@ -128,10 +133,14 @@ public class NihmsCsvProcessorTest {
         Path resource = null;
         try {
             resource = Paths.get(NihmsCsvProcessorTest.class.getResource(filename).toURI());
-            new NihmsCsvProcessor(resource, NihmsStatus.COMPLIANT);     
         } catch (URISyntaxException ex) {
             fail("problem with test file path");
         }
+        Consumer<NihmsPublication> consumer = pub -> {
+            fail();
+        };
+        NihmsCsvProcessor processor = new NihmsCsvProcessor(resource, NihmsStatus.COMPLIANT);
+        processor.processCsv(consumer);       
     }
     
 }
