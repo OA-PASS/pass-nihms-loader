@@ -48,6 +48,20 @@
     <module>nihms-etl-util</module>
   </modules>
 
+  <profiles>
+    <profile>
+      <id>external</id>
+      <activation>
+        <property>
+          <name>external</name>
+        </property>
+      </activation>
+      <properties>
+        <scp.port>122</scp.port>
+      </properties>
+    </profile>
+  </profiles>
+
   <build>    
     <pluginManagement>
       <plugins>
@@ -256,6 +270,21 @@
       </snapshots>
     </repository>
   </repositories>
-  
+
+  <distributionManagement>
+    <repository>
+      <id>dc.public.releases</id>
+      <name>Data Conservancy Release Maven Repository</name>
+      <url>scp://maven.dataconservancy.org:${scp.port}/data/maven-dc/public/releases/</url>
+    </repository>
+
+    <snapshotRepository>
+      <id>dc.public.snapshots</id>
+      <name>Data Conservancy Snapshot Maven Repository</name>
+      <url>scp://maven.dataconservancy.org:${scp.port}/data/maven-dc/public/snapshots/</url>
+      <uniqueVersion>false</uniqueVersion>
+    </snapshotRepository>
+
+  </distributionManagement>  
   
 </project>
