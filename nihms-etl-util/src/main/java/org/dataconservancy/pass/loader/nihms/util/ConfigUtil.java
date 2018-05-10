@@ -31,7 +31,7 @@ import java.util.Properties;
  */
 public class ConfigUtil {
 
-    private static final String NIHMS_REPOSITORY_URI_KEY = "nihms.repository.uri"; 
+    private static final String NIHMS_REPOSITORY_URI_KEY = "nihmsetl.repository.uri"; 
     private static final String NIHMS_REPOSITORY_URI_DEFAULT = "https://example.com/fedora/repositories/1";
                 
     /** 

@@ -48,7 +48,7 @@ public class NihmsPublicationToSubmission {
 
     private static final Logger LOG = LoggerFactory.getLogger(NihmsPublicationToSubmission.class);
     
-    private static final String PMC_URL_TEMPLATE_KEY = "pmc.url.template"; 
+    private static final String PMC_URL_TEMPLATE_KEY = "nihmsetl.pmcurl.template"; 
     private static final String PMC_URL_TEMPLATE_DEFAULT = "https://www.ncbi.nlm.nih.gov/pmc/articles/%s/";
     
     private static final String NIHMS_CSV_DATE_PATTERN = "MM/dd/yyyy";
@@ -228,7 +228,7 @@ public class NihmsPublicationToSubmission {
     private RepositoryCopy initiateNewRepositoryCopy(NihmsPublication pub, URI publicationId) {
         RepositoryCopy repositoryCopy = new RepositoryCopy();
 
-        LOG.info("NIHMS RepositoryCopy record needed for PMID \"{}\", initiating new Deposit record", pub.getPmid());
+        LOG.info("NIHMS RepositoryCopy record needed for PMID \"{}\", initiating new RepositoryCopy record", pub.getPmid());
 
         repositoryCopy.setPublication(publicationId);
         repositoryCopy.setCopyStatus(calcRepoCopyStatus(pub, null));

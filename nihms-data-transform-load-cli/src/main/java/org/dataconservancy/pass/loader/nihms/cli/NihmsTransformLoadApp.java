@@ -46,7 +46,8 @@ public class NihmsTransformLoadApp {
      */
     private static final String[] SYSTEM_PROPERTIES = {"pass.fedora.user", "pass.fedora.password", 
                                                        "pass.fedora.baseurl", "pass.elasticsearch.url",
-                                                       "pass.elasticsearch.limit"};
+                                                       "pass.elasticsearch.limit","nihmsetl.repository.uri",
+                                                       "nihmsetl.pmcurl.template"};
         
     private Set<NihmsStatus> statusesToProcess;
 
