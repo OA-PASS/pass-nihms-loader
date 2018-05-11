@@ -194,25 +194,31 @@ public class NihmsHarvester {
             if (statusesToDownload.contains(NihmsStatus.COMPLIANT)) {
                 driver.findElement(By.xpath(GUI_COMPLIANT_LINK_XPATH)).click();     
                 LOG.info("Goto compliant list");
+                Thread.sleep(2000);     
                 driver.findElement(By.linkText(GUI_DOWNLOAD_LINKTEXT)).click(); 
                 String newfile = pollAndRename(COMPLIANT_FILE_PREFIX, NihmsStatus.COMPLIANT);    
-                LOG.info("Downloaded compliant publications as file " + newfile);       
+                LOG.info("Downloaded and saved compliant publications as file " + newfile);     
+                Thread.sleep(2000);     
             }        
             
             if (statusesToDownload.contains(NihmsStatus.NON_COMPLIANT)) {
                 driver.findElement(By.xpath(GUI_NONCOMPLIANT_LINK_XPATH)).click();     
                 LOG.info("Goto non-compliant list");
+                Thread.sleep(2000);     
                 driver.findElement(By.linkText(GUI_DOWNLOAD_LINKTEXT)).click(); 
                 String newfile = pollAndRename(NONCOMPLIANT_FILE_PREFIX, NihmsStatus.NON_COMPLIANT);
                 LOG.info("Downloaded and saved non-compliant publications as file " + newfile);       
+                Thread.sleep(2000);       
             }
             
             if (statusesToDownload.contains(NihmsStatus.IN_PROCESS)) {
                 driver.findElement(By.xpath(GUI_INPROCESS_LINK_XPATH)).click();     
                 LOG.info("Goto in-process list");
+                Thread.sleep(2000);     
                 driver.findElement(By.linkText(GUI_DOWNLOAD_LINKTEXT)).click();  
                 String newfile = pollAndRename(INPROCESS_FILE_PREFIX, NihmsStatus.IN_PROCESS);
-                LOG.info("Downloaded and saved in-process publications as file " + newfile);       
+                LOG.info("Downloaded and saved in-process publications as file " + newfile);  
+                Thread.sleep(2000);        
             }
 
             //logout
@@ -245,11 +251,12 @@ public class NihmsHarvester {
         return (nullOrEmpty(startDate) || startDate.matches("^(0?[1-9]|1[012])-(\\d{4})$"));
     }
     
-    private String pollAndRename(String prefix, NihmsStatus status) {
+    private String pollAndRename(String prefix, NihmsStatus status) throws InterruptedException {
         File newfile = FileWatcher.getNewFile(downloadDirectoryPath, prefix, ".csv");
         LOG.info("New file downloaded: " + newfile.getAbsolutePath());
         String newFilePath = null;
         if (newfile!=null) {
+            Thread.sleep(2000);     
             DateTimeFormatter fmt = DateTimeFormat.forPattern("yyyyMMddHHmmss");
             String timeStamp = fmt.print(new DateTime());
             newFilePath = downloadDirectoryPath.toString() + "/" + status.toString() + "_nihmspubs_" + timeStamp + ".csv";
