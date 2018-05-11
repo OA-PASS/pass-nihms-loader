@@ -18,6 +18,8 @@ package org.dataconservancy.pass.client.nihms;
 import java.net.URI;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -122,28 +124,33 @@ public class NihmsPassClientService {
      * @param awardNumber
      * @return
      */
-    public Grant findGrantByAwardNumber(String awardNumber) {
+    public Grant findMostRecentGrantByAwardNumber(String awardNumber) {
         if (nullOrEmpty(awardNumber)) {
             throw new IllegalArgumentException("awardNumber cannot be empty");
         }
         
         //if the awardNumber is in the cache, retrieve URI.
         URI grantId = grantCache.get(awardNumber);
-        
-        if (grantId==null) {
-            grantId = client.findByAttribute(Grant.class, AWARD_NUMBER_FLD, awardNumber);
-        }
-        
-        if (grantId==null) {
-            //try with no spaces
-            awardNumber = awardNumber.replaceAll("\\s+","");
-            grantId = client.findByAttribute(Grant.class, AWARD_NUMBER_FLD, awardNumber);
-        }
-        
         if (grantId!=null) {
-            Grant grant = readGrant(grantId);
-            grantCache.put(awardNumber, grantId);
-            return grant;
+            return readGrant(grantId);
+        }
+        
+        // if we are here, there was nothing cached and we need to figure out which grant to return
+        Set<URI> grantIds = client.findAllByAttribute(Grant.class, AWARD_NUMBER_FLD, awardNumber);
+        
+        //try with no spaces
+        awardNumber = awardNumber.replaceAll("\\s+","");
+        grantIds.addAll(client.findAllByAttribute(Grant.class, AWARD_NUMBER_FLD, awardNumber));
+        
+        List<Grant> grants = new ArrayList<Grant>();
+        for (URI id : grantIds) {
+            grants.add(readGrant(id));
+        }
+        
+        if (grants.size()>0) {
+            Grant mostRecentGrant = Collections.max(grants, Comparator.comparing(Grant::getStartDate));
+            grantCache.put(awardNumber, mostRecentGrant.getId());
+            return mostRecentGrant;
         }      
         
         return null;

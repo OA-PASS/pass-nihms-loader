@@ -110,7 +110,7 @@ public class SubmissionTransformerTest {
         Grant grant = newTestGrant();
         
         //Mocking that we have a valid grant URI, PMID, and DOI to use.
-        when(clientServiceMock.findGrantByAwardNumber(awardNumber)).thenReturn(grant);
+        when(clientServiceMock.findMostRecentGrantByAwardNumber(awardNumber)).thenReturn(grant);
         when(clientServiceMock.findPublicationById(pmid, doi)).thenReturn(null);
         when(clientServiceMock.findJournalByIssn(issn)).thenReturn(new URI(sJournalUri));
         
@@ -144,7 +144,7 @@ public class SubmissionTransformerTest {
         pub.setTaggingCompleteDate(depositDate);
 
         Grant grant = newTestGrant();
-        when(clientServiceMock.findGrantByAwardNumber(awardNumber)).thenReturn(grant);
+        when(clientServiceMock.findMostRecentGrantByAwardNumber(awardNumber)).thenReturn(grant);
         when(clientServiceMock.findPublicationById(pmid, doi)).thenReturn(null);
         when(clientServiceMock.findJournalByIssn(issn)).thenReturn(new URI(sJournalUri));
         when(pmidLookupMock.retrievePubMedRecord(pmid)).thenReturn(pubMedRecordMock);
@@ -189,7 +189,7 @@ public class SubmissionTransformerTest {
         submissions.add(submission);
         
         Grant grant = newTestGrant();
-        when(clientServiceMock.findGrantByAwardNumber(awardNumber)).thenReturn(grant);
+        when(clientServiceMock.findMostRecentGrantByAwardNumber(awardNumber)).thenReturn(grant);
         
         when(clientServiceMock.findPublicationById(pmid, doi)).thenReturn(publication);
         when(clientServiceMock.findSubmissionsByPublicationAndUserId(publication.getId(), grant.getPi())).thenReturn(submissions);
@@ -237,7 +237,7 @@ public class SubmissionTransformerTest {
         submissions.add(submission);
         
         Grant grant = newTestGrant();
-        when(clientServiceMock.findGrantByAwardNumber(awardNumber)).thenReturn(grant);
+        when(clientServiceMock.findMostRecentGrantByAwardNumber(awardNumber)).thenReturn(grant);
         
         when(clientServiceMock.findPublicationById(pmid, doi)).thenReturn(publication);
         when(clientServiceMock.findSubmissionsByPublicationAndUserId(publication.getId(), grant.getPi())).thenReturn(submissions);
@@ -268,7 +268,7 @@ public class SubmissionTransformerTest {
     @Test
     public void testTransformNoMatchingGrantThrowsException() {
 
-        when(clientServiceMock.findGrantByAwardNumber(Mockito.anyObject())).thenReturn(null);
+        when(clientServiceMock.findMostRecentGrantByAwardNumber(Mockito.anyObject())).thenReturn(null);
         expectedEx.expect(RuntimeException.class);
         expectedEx.expectMessage("No Grant matching award number");
         

@@ -118,7 +118,7 @@ public class NihmsPublicationToSubmission {
     public SubmissionDTO transform(NihmsPublication pub) {
         
         //matching grant uri is a requirement for all nihms submissions
-        Grant grant = clientService.findGrantByAwardNumber(pub.getGrantNumber());
+        Grant grant = clientService.findMostRecentGrantByAwardNumber(pub.getGrantNumber());
         if (grant==null) {
             throw new RuntimeException(String.format("No Grant matching award number \"%s\" was found. Cannot process submission with pmid %s", pub.getGrantNumber(), pub.getPmid()));
         }

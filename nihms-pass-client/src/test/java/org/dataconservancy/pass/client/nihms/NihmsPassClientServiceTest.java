@@ -34,6 +34,7 @@ import org.dataconservancy.pass.model.Grant;
 import org.dataconservancy.pass.model.Publication;
 import org.dataconservancy.pass.model.RepositoryCopy;
 import org.dataconservancy.pass.model.Submission;
+import org.joda.time.DateTime;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
@@ -57,7 +58,8 @@ import static org.mockito.Mockito.when;
 @SuppressWarnings({"unchecked", "rawtypes"})
 public class NihmsPassClientServiceTest {
     
-    private static final String sGrantId = "https://example.com/fedora/grants/1";
+    private static final String sGrant1Id = "https://example.com/fedora/grants/1";
+    private static final String sGrant2Id = "https://example.com/fedora/grants/2";
     private static final String sSubmissionId = "https://example.com/fedora/submissions/1";
     private static final String sUserId = "https://example.com/fedora/users/1";
     private static final String sDepositId = "https://example.com/fedora/deposits/1";
@@ -78,6 +80,7 @@ public class NihmsPassClientServiceTest {
     private NihmsPassClientService clientService;
     
     private URI grantId;
+    private URI grant2Id;
     private URI userId;
     private URI submissionId;
     private URI depositId;
@@ -89,7 +92,8 @@ public class NihmsPassClientServiceTest {
     public void initMocks() throws Exception{
         MockitoAnnotations.initMocks(this);
         clientService = new NihmsPassClientService(mockClient);
-        grantId = new URI(sGrantId);
+        grantId = new URI(sGrant1Id);
+        grant2Id = new URI(sGrant2Id);
         userId = new URI(sUserId);
         submissionId = new URI(sSubmissionId);
         depositId = new URI(sDepositId);
@@ -113,11 +117,11 @@ public class NihmsPassClientServiceTest {
         
         ArgumentCaptor<String> awardNumCaptor = ArgumentCaptor.forClass(String.class);
         
-        when(mockClient.findByAttribute(eq(Grant.class), eq("awardNumber"), eq(awardNumber))).thenReturn(null);
+        when(mockClient.findAllByAttribute(eq(Grant.class), eq("awardNumber"), eq(awardNumber))).thenReturn(new HashSet<URI>());
 
-        Grant grant = clientService.findGrantByAwardNumber(awardNumber);
+        Grant grant = clientService.findMostRecentGrantByAwardNumber(awardNumber);
         
-        verify(mockClient, times(2)).findByAttribute(eq(Grant.class), eq("awardNumber"), awardNumCaptor.capture()); 
+        verify(mockClient, times(2)).findAllByAttribute(eq(Grant.class), eq("awardNumber"), awardNumCaptor.capture()); 
         
         assertEquals(awardNumber, awardNumCaptor.getAllValues().get(0));
         assertEquals(awardNumber.replace(" ", ""), awardNumCaptor.getAllValues().get(1));
@@ -131,16 +135,28 @@ public class NihmsPassClientServiceTest {
      */
     @Test
     public void testFindGrantByAwardNumberHasMatch() throws Exception {
-        Grant grant = new Grant();
-        grant.setId(new URI(sGrantId));
-        grant.setAwardNumber(awardNumber);
+        Grant grant1 = new Grant();
+        grant1.setId(grantId);
+        grant1.setAwardNumber(awardNumber);
+        grant1.setStartDate(new DateTime().minusYears(1));
+        
+        Grant grant2 = new Grant();
+        grant2.setId(grant2Id);
+        grant2.setAwardNumber(awardNumber);
+        grant2.setStartDate(new DateTime());
 
-        when(mockClient.findByAttribute(eq(Grant.class), eq("awardNumber"), eq(awardNumber))).thenReturn(grant.getId());
-        when(mockClient.readResource(any(), eq(Grant.class))).thenReturn(grant);
+        Set<URI> grantIds = new HashSet<URI>();
+        grantIds.add(grantId);
+        grantIds.add(grant2Id);
+        
+        when(mockClient.findAllByAttribute(eq(Grant.class), eq("awardNumber"), eq(awardNumber))).thenReturn(grantIds);
+        when(mockClient.readResource(eq(grantId), eq(Grant.class))).thenReturn(grant1);
+        when(mockClient.readResource(eq(grant2Id), eq(Grant.class))).thenReturn(grant2);
 
-        Grant matchedGrant = clientService.findGrantByAwardNumber(awardNumber);
-        verify(mockClient).findByAttribute(eq(Grant.class), eq("awardNumber"), eq(awardNumber)); 
-        assertEquals(grant, matchedGrant);        
+        Grant matchedGrant = clientService.findMostRecentGrantByAwardNumber(awardNumber);
+        verify(mockClient).findAllByAttribute(eq(Grant.class), eq("awardNumber"), eq(awardNumber)); 
+        
+        assertEquals(grant2, matchedGrant);        
     }
 
     
