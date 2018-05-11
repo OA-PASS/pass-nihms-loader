@@ -221,13 +221,18 @@ public class NihmsHarvester {
         } catch (Exception ex) {
             throw new RuntimeException("An error occurred while downloading the NIHMS files.", ex);
         } finally {
-            if (driver!=null) {
-                driver.quit();
+            try {
+                if (driver!=null) {
+                    driver.quit();
+                } 
+            } catch (Exception ex) {
+                LOG.warn("Could not quit driver. Webdriver may still be running and require manual cleanup.");
             }
             try {
-                Runtime.getRuntime().exec("taskkill /F /IM geckodriver.exe /T");
+                String path = new File(NihmsHarvesterConfig.getGeckoDriverPath()).getName();
+                Runtime.getRuntime().exec("taskkill /F /IM " + path + " /T");
             } catch (Exception ex) {
-                //do nothing
+                LOG.warn("Could not clean up geckodriver task. Webdriver may still be running and require manual cleanup.");
             }
         }
     }
