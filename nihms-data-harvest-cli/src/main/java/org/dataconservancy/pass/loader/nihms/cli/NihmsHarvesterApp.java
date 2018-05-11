@@ -83,7 +83,7 @@ public class NihmsHarvesterApp {
         } else {
             LOG.warn("Could not find a readable config file at path {}, will use current system and environment variables for configuration. "
                     + "To use a config file, create a file named \"{}\" in the app's folder or provide a valid path "
-                    + "using the \"nihms.config.filepath\" environment variable.", configFile.getAbsolutePath(), DEFAULT_CONFIG_FILENAME);
+                    + "using the \"{}\" environment variable.", configFile.getAbsolutePath(), DEFAULT_CONFIG_FILENAME, NIHMS_CONFIG_FILEPATH_PROPKEY);
         }
         
         NihmsHarvester harvester = new NihmsHarvester();
