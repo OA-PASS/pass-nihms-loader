@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.function.Consumer;
 
+import org.dataconservancy.pass.client.fedora.UpdateConflictException;
 import org.dataconservancy.pass.client.nihms.NihmsPassClientService;
 import org.dataconservancy.pass.entrez.PmidLookup;
 import org.dataconservancy.pass.loader.nihms.model.NihmsPublication;
@@ -43,10 +44,12 @@ import static org.dataconservancy.pass.loader.nihms.util.ProcessingUtil.nullOrEm
 public class NihmsTransformLoadService {
 
     private static Logger LOG = LoggerFactory.getLogger(NihmsTransformLoadService.class);
-    
+        
     private NihmsPassClientService nihmsPassClient;
     
     private PmidLookup pmidLookup;
+    
+    
     
     public NihmsTransformLoadService() {
         nihmsPassClient = new NihmsPassClientService();
@@ -102,17 +105,34 @@ public class NihmsTransformLoadService {
     
     /**
      * Takes pub record from CSV loader, transforms it then passes transformed record to the 
-     * loader. Note that exceptions should not be caught here, they should be caught by CSV processor which
-     * tallies the successes/failures.
-     * @param pub
+     * loader. Exceptions generally should not be caught here, they should be caught by CSV processor which
+     * tallies the successes/failures. The only Exception caught is UpdateConflictException, which is easy to 
+     * recover from. On catching an UpdateConflictException, it will attempt several retries before failing and 
+     * moving on
+     * @param pub the NihmsPublication object
      */
-    private void transformAndLoadNihmsPub(NihmsPublication pub) {
-        NihmsPublicationToSubmission transformer = new NihmsPublicationToSubmission(nihmsPassClient, pmidLookup);
-        SubmissionDTO transformedRecord = transformer.transform(pub);
-        SubmissionLoader loader = new SubmissionLoader(nihmsPassClient);
-        loader.load(transformedRecord);
+    private void transformAndLoadNihmsPub(NihmsPublication pub) {   
+        final int MAX_ATTEMPTS = 3; //applies to UpdateConflictExceptions only, which can be recovered from
+        int attempt = 0;
+        while (true) {
+            try {
+                attempt = attempt+1;
+                NihmsPublicationToSubmission transformer = new NihmsPublicationToSubmission(nihmsPassClient, pmidLookup);
+                SubmissionDTO transformedRecord = transformer.transform(pub);
+                SubmissionLoader loader = new SubmissionLoader(nihmsPassClient);
+                loader.load(transformedRecord);     
+                break;
+            } catch (UpdateConflictException ex) {
+                if (attempt<MAX_ATTEMPTS) {
+                    LOG.warn("Update failed for PMID %s due to database conflict, attempting retry # %d", pub.getPmid(), attempt);
+                } else {
+                    throw new RuntimeException(String.format("Update could not be applied for PMID %s after %d attempts ", pub.getPmid(), MAX_ATTEMPTS), ex);                    
+                }
+            }
+        }
     }
-
+   
+    
     /**
      * Checks directory provided and attempts to load a list of files to process
      * @param downloadDirectory
@@ -129,6 +149,7 @@ public class NihmsTransformLoadService {
         }  
         return filepaths;
     }
+    
 
     /**
      * Cycles through Submission status types, and matches it to the filepath to determine
