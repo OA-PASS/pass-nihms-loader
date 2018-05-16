@@ -139,8 +139,16 @@ public class NihmsPassClientService {
         Set<URI> grantIds = client.findAllByAttribute(Grant.class, AWARD_NUMBER_FLD, awardNumber);
         
         //try with no spaces
-        awardNumber = awardNumber.replaceAll("\\s+","");
-        grantIds.addAll(client.findAllByAttribute(Grant.class, AWARD_NUMBER_FLD, awardNumber));
+        String modAwardNum = awardNumber.replaceAll("\\s+","");
+        if (!awardNumber.equals(modAwardNum)) {
+            grantIds.addAll(client.findAllByAttribute(Grant.class, AWARD_NUMBER_FLD, modAwardNum));
+        }
+        
+        if (modAwardNum.length()>6 && modAwardNum.substring(5,6).equals("0")){
+            //try removing 0 on 6th character - COEUS data removes this
+            modAwardNum = modAwardNum.substring(0, 5) + modAwardNum.substring(6);
+            grantIds.addAll(client.findAllByAttribute(Grant.class, AWARD_NUMBER_FLD, modAwardNum));            
+        }
         
         List<Grant> grants = new ArrayList<Grant>();
         for (URI id : grantIds) {
