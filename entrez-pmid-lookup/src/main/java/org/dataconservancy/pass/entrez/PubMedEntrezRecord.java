@@ -36,7 +36,6 @@ public class PubMedEntrezRecord {
     private static final String JSON_ISSUE_KEY = "issue";    
     private static final String JSON_ISSN_KEY = "issn";   
     private static final String JSON_ESSN_KEY = "essn";   
-    private static final String DOI_PREFIX = "https://doi.org/";
     private static final String VALID_DOI_CONTAINS = "10.";
     
     /**
@@ -71,7 +70,6 @@ public class PubMedEntrezRecord {
                 doi = id.getString(JSON_IDVALUE_KEY);
                 if (doi!=null && doi.length()>0 && doi.contains(VALID_DOI_CONTAINS)) {
                     doi = doi.trim();
-                    doi = DOI_PREFIX + doi;
                 }
             }                    
         }        

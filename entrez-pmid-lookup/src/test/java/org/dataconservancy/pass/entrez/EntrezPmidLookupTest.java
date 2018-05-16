@@ -45,7 +45,7 @@ public class EntrezPmidLookupTest {
         PmidLookup pmidLookup = new PmidLookup();
         String pmid = "29249144";
         PubMedEntrezRecord record = pmidLookup.retrievePubMedRecord(pmid);        
-        assertEquals("https://doi.org/10.1021/acs.jproteome.7b00775", record.getDoi());
+        assertEquals("10.1021/acs.jproteome.7b00775", record.getDoi());
         
     }
     
