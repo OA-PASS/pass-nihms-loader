@@ -91,7 +91,8 @@ public class SubmissionLoaderTest {
 
         when(clientServiceMock.createPublication(publication)).thenReturn(new URI(sPublicationUri));
         when(clientServiceMock.createSubmission(submission)).thenReturn(new URI(sSubmissionUri));
-        when(clientServiceMock.findPublicationById(Mockito.eq(publication.getPmid()), Mockito.any())).thenReturn(null);
+        when(clientServiceMock.findPublicationByPmid(Mockito.eq(publication.getPmid()))).thenReturn(null);
+        when(clientServiceMock.findPublicationByDoi(Mockito.any(), Mockito.eq(publication.getPmid()))).thenReturn(null);
         
         loader.load(dto);
         
@@ -118,7 +119,7 @@ public class SubmissionLoaderTest {
      * @throws Exception
      */
     @Test
-    public void testLoadUpdatePubNewSubmissionNoRepositoryCopy() throws Exception {
+    public void testLoadExistingPubNewSubmissionNoRepositoryCopy() throws Exception {
         SubmissionLoader loader = new SubmissionLoader(clientServiceMock);
         
         Publication publication = new Publication();
@@ -139,9 +140,7 @@ public class SubmissionLoaderTest {
                 
         loader.load(dto);
         
-        ArgumentCaptor<Publication> publicationCaptor = ArgumentCaptor.forClass(Publication.class);
-        verify(clientServiceMock).updatePublication(publicationCaptor.capture());
-        assertEquals(publication, publicationCaptor.getValue());
+        verify(clientServiceMock, never()).updatePublication(Mockito.any()); 
 
         ArgumentCaptor<Submission> submissionCaptor = ArgumentCaptor.forClass(Submission.class);
         verify(clientServiceMock).createSubmission(submissionCaptor.capture()); 
@@ -161,7 +160,7 @@ public class SubmissionLoaderTest {
      * @throws Exception
      */
     @Test
-    public void testLoadUpdatePubUpdateSubmissionNoRepoCopy() throws Exception {
+    public void testLoadExistingPubExistingSubmissionNoRepoCopy() throws Exception {
         
         Publication publication = new Publication();
         publication.setId(new URI(sPublicationUri));
@@ -181,15 +180,9 @@ public class SubmissionLoaderTest {
         
         loader.load(dto);
         
-        ArgumentCaptor<Publication> publicationCaptor = ArgumentCaptor.forClass(Publication.class);
-        verify(clientServiceMock).updatePublication(publicationCaptor.capture());
-        assertEquals(publication, publicationCaptor.getValue());
-
-        ArgumentCaptor<Submission> submissionCaptor = ArgumentCaptor.forClass(Submission.class);
-        verify(clientServiceMock).updateSubmission(submissionCaptor.capture()); 
-        assertEquals(submission, submissionCaptor.getValue());
-
-        //no repo copy so shouldn't touch RepositoryCopy create/update
+        //should not update anything
+        verify(clientServiceMock, never()).updatePublication(Mockito.any()); 
+        verify(clientServiceMock, never()).updateSubmission(Mockito.any()); 
         verify(clientServiceMock, never()).createRepositoryCopy(Mockito.anyObject());    
         verify(clientServiceMock, never()).updateRepositoryCopy(Mockito.anyObject());       
         verify(clientServiceMock, never()).updateDeposit(Mockito.anyObject());     
@@ -202,7 +195,7 @@ public class SubmissionLoaderTest {
      * @throws Exception
      */
     @Test
-    public void testLoadUpdatePublicationNewSubmissionNewRepoCopy() throws Exception {
+    public void testLoadExistingPublicationNewSubmissionNewRepoCopy() throws Exception {
 
         Publication publication = new Publication();
         publication.setId(new URI(sPublicationUri));
@@ -229,14 +222,12 @@ public class SubmissionLoaderTest {
         URI repositoryCopyUri = new URI(sRepositoryCopyUri);
         when(clientServiceMock.createSubmission(submission)).thenReturn(submissionUri);
         when(clientServiceMock.createRepositoryCopy(repositoryCopy)).thenReturn(repositoryCopyUri);
-        when(clientServiceMock.findPublicationById(Mockito.eq(publication.getPmid()), Mockito.any())).thenReturn(publication);
+        when(clientServiceMock.findPublicationByPmid(Mockito.eq(publication.getPmid()))).thenReturn(publication);
         
         //run it
         loader.load(dto);     
-        
-        ArgumentCaptor<Publication> publicationCaptor = ArgumentCaptor.forClass(Publication.class);
-        verify(clientServiceMock).updatePublication(publicationCaptor.capture()); 
-        assertEquals(publication, publicationCaptor.getValue());
+
+        verify(clientServiceMock, never()).updatePublication(Mockito.any()); 
 
         ArgumentCaptor<Submission> submissionCaptor = ArgumentCaptor.forClass(Submission.class);
         verify(clientServiceMock).createSubmission(submissionCaptor.capture()); 
@@ -257,7 +248,7 @@ public class SubmissionLoaderTest {
      * @throws Exception
      */
     @Test
-    public void testLoadUpdatePubUpdateSubmissionNewRepoCopy() throws Exception {
+    public void testLoadExistingPubExistingSubmissionNewRepoCopy() throws Exception {
 
         Publication publication = new Publication();
         publication.setId(new URI(sPublicationUri));
@@ -293,13 +284,9 @@ public class SubmissionLoaderTest {
         //run it
         loader.load(dto);     
         
-        ArgumentCaptor<Publication> publicationCaptor = ArgumentCaptor.forClass(Publication.class);
-        verify(clientServiceMock).updatePublication(publicationCaptor.capture()); 
-        assertEquals(publication, publicationCaptor.getValue());
+        verify(clientServiceMock, never()).updatePublication(Mockito.any()); 
 
-        ArgumentCaptor<Submission> submissionCaptor = ArgumentCaptor.forClass(Submission.class);
-        verify(clientServiceMock).updateSubmission(submissionCaptor.capture()); 
-        assertEquals(submission, submissionCaptor.getValue());
+        verify(clientServiceMock, never()).updateSubmission(Mockito.any()); 
 
         ArgumentCaptor<RepositoryCopy> repoCopyCaptor = ArgumentCaptor.forClass(RepositoryCopy.class);
         verify(clientServiceMock).createRepositoryCopy(repoCopyCaptor.capture()); 

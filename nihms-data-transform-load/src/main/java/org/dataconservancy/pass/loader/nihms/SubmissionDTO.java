@@ -34,6 +34,12 @@ public class SubmissionDTO {
         
     private RepositoryCopy repositoryCopy = null;
     
+    private boolean updatePublication = false;
+    
+    private boolean updateSubmission = false;
+    
+    private boolean updateRepositoryCopy = false;
+    
     private URI grantId = null;
 
     
@@ -97,6 +103,54 @@ public class SubmissionDTO {
      */
     public void setGrantId(URI grantId) {
         this.grantId = grantId;
+    }
+
+    
+    /**
+     * @return updatePublication true if update should be performed
+     */
+    public boolean doUpdatePublication() {
+        return updatePublication;
+    }
+
+    
+    /**
+     * @param updatePublication the updatePublication to set
+     */
+    public void setUpdatePublication(boolean updatePublication) {
+        this.updatePublication = updatePublication;
+    }
+
+    
+    /**
+     * @return updateSubmission true if update should be performed
+     */
+    public boolean doUpdateSubmission() {
+        return updateSubmission;
+    }
+
+    
+    /**
+     * @param updateSubmission the updateSubmission to set
+     */
+    public void setUpdateSubmission(boolean updateSubmission) {
+        this.updateSubmission = updateSubmission;
+    }
+
+    
+    /**
+     * @return updateRepositoryCopy true if update should be performed
+     */
+    public boolean doUpdateRepositoryCopy() {
+        return updateRepositoryCopy;
+    }
+
+    
+    /**
+     * @param updateRepositoryCopy the updateRepositoryCopy to set
+     */
+    public void setUpdateRepositoryCopy(boolean updateRepositoryCopy) {
+        this.updateRepositoryCopy = updateRepositoryCopy;
     }
     
 }

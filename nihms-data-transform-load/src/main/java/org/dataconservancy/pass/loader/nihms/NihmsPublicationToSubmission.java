@@ -77,6 +77,12 @@ public class NihmsPublicationToSubmission {
     private String pmcUrlTemplate;
     
     /**
+     * Captures information needed to generate Submission using Submission Loader.
+     */
+    private SubmissionDTO submissionDTO;
+    
+    
+    /**
      * Constructor uses defaults for client service and pmid lookup
      * @param clientService
      */
@@ -88,6 +94,7 @@ public class NihmsPublicationToSubmission {
     
     /**
      * Constructor initiates with the required NIHMS Client Service and PMID lookup
+     * Useful to pass in an existing clientService to reuse cache 
      * @param clientService
      */
     public NihmsPublicationToSubmission(NihmsPassClientService clientService, PmidLookup pmidLookup) {
@@ -116,7 +123,7 @@ public class NihmsPublicationToSubmission {
      * @return
      */
     public SubmissionDTO transform(NihmsPublication pub) {
-        
+                
         //matching grant uri is a requirement for all nihms submissions
         Grant grant = clientService.findMostRecentGrantByAwardNumber(pub.getGrantNumber());
         if (grant==null) {
@@ -124,7 +131,7 @@ public class NihmsPublicationToSubmission {
         }
         
         //this stage will be all about building up the DTO
-        SubmissionDTO submissionDTO = new SubmissionDTO();
+        submissionDTO = new SubmissionDTO();
         submissionDTO.setGrantId(grant.getId());
         
         Publication publication = retrieveOrCreatePublication(pub);
@@ -151,22 +158,36 @@ public class NihmsPublicationToSubmission {
         //use pmid to get additional metadata from Entrez. Need this for DOI, maybe other fields too
         String pmid = nihmsPub.getPmid();
         String doi = null;
+        PubMedEntrezRecord pubmedRecord = null;
 
-        //NOTE: if this returns null, the request succeeded, but Entrez could not match the record so we should proceed without one.
-        //A RuntimeException would be thrown and the transform would fail if there was e.g. a config or connection problem.
-        PubMedEntrezRecord pubmedRecord = pmidLookup.retrievePubMedRecord(pmid);
-        if (pubmedRecord != null) {
-            doi = pubmedRecord.getDoi();
-        } 
-        Publication publication = clientService.findPublicationById(pmid, doi);
-        if (publication==null){
+        Publication publication = clientService.findPublicationByPmid(pmid);
+
+        // get missing information from Entrez, if necessary
+        if (publication==null || nullOrEmpty(publication.getDoi())) {
+            //NOTE: if this returns null, the request succeeded, but Entrez could not match the record so we should proceed without one.
+            //A RuntimeException would be thrown and the transform would fail if there was e.g. a config or connection problem.
+            pubmedRecord = pmidLookup.retrievePubMedRecord(pmid);
+            if (pubmedRecord != null) {
+                doi = pubmedRecord.getDoi();
+            } 
+        }
+
+        // if there is no match pmid in database, check if there is a match for doi
+        if (publication==null && !nullOrEmpty(doi)) {
+            publication = clientService.findPublicationByDoi(doi, pmid);
+        }
+        
+        if (publication==null) {
             publication = initiateNewPublication(nihmsPub, pubmedRecord);
+            submissionDTO.setUpdatePublication(true);
         }  else {
             if (nullOrEmpty(publication.getDoi()) && !nullOrEmpty(doi)) {
                 publication.setDoi(doi);
+                submissionDTO.setUpdatePublication(true);
             }
             if (nullOrEmpty(publication.getPmid())) {
                 publication.setPmid(pmid);
+                submissionDTO.setUpdatePublication(true);
             }
         }
         
@@ -220,6 +241,30 @@ public class NihmsPublicationToSubmission {
         }
         if (repoCopy==null && !nullOrEmpty(pub.getNihmsId())) { //only create if there is at least a nihms ID indicating something is started
             repoCopy = initiateNewRepositoryCopy(pub, publicationId);
+            submissionDTO.setUpdateRepositoryCopy(true);
+        } else if (repoCopy != null) {
+            //check external ids are updated
+            List<String> externalIds = repoCopy.getExternalIds();
+            String pmcId = pub.getPmcId();
+            if (!nullOrEmpty(pmcId) && !externalIds.contains(pmcId)){
+                externalIds.add(pmcId);    
+                repoCopy.setAccessUrl(createAccessUrl(pmcId));  
+                submissionDTO.setUpdateRepositoryCopy(true);      
+            }
+            String nihmsId = pub.getNihmsId();
+            if (!nullOrEmpty(nihmsId) && !externalIds.contains(nihmsId)) {
+                externalIds.add(nihmsId);   
+                submissionDTO.setUpdateRepositoryCopy(true);         
+            }
+            repoCopy.setExternalIds(externalIds);
+            
+            //check if copystatus changed
+            CopyStatus copyStatus = repoCopy.getCopyStatus();
+            CopyStatus newCopyStatus = calcRepoCopyStatus(pub, copyStatus);
+            if (!copyStatus.equals(newCopyStatus)) {
+                repoCopy.setCopyStatus(newCopyStatus);
+                submissionDTO.setUpdateRepositoryCopy(true);        
+            }
         }
         return repoCopy;
     }
@@ -293,17 +338,25 @@ public class NihmsPublicationToSubmission {
                 // to add repository to instead of creating a new one. First one found will do
                 if (submission == null) {
                     submission = submissions.stream().filter(s -> !s.getSubmitted()).findFirst().orElse(null);
+                    if (submission != null) {
+                        List<URI> repositories = submission.getRepositories();
+                        repositories.add(nihmsRepositoryUri);
+                        submission.setRepositories(repositories);
+                        submissionDTO.setUpdateSubmission(true);   
+                    }
                 }
                 
             } 
         }
         
         if (submission==null) {
-            submission = initiateNewSubmission(grant, publicationUri);    
+            submission = initiateNewSubmission(grant, publicationUri); 
+            submissionDTO.setUpdateSubmission(true);   
         }
         
-        // if we have a repository copy, but the submission is not marked as submitted, set it as submitted and use file deposit date
-        // when a submission is set to submitted by this transform process, it becomes Source.OTHER regardless of where it started
+        // if we have a repository copy, and there is only one repository listed on the submission (would be the nihsm repo)
+        // but the submission is not marked as submitted, set it as submitted and use file deposit date as submitted date
+        // Wwhen a submission is set to submitted by this transform process, it becomes Source.OTHER regardless of where it started
         if (submission.getRepositories().size()==1
                 && hasRepoCopy 
                 && !submission.getSubmitted()) {
@@ -313,6 +366,7 @@ public class NihmsPublicationToSubmission {
             if (!nullOrEmpty(depositedDate)) {
                 submission.setSubmittedDate(formatDate(depositedDate, NIHMS_CSV_DATE_PATTERN));
             }
+            submissionDTO.setUpdateSubmission(true);   
         }
 
         // finally, make sure grant is in the list of the chosen submission
@@ -320,6 +374,7 @@ public class NihmsPublicationToSubmission {
         if (!grants.contains(grantId)) {
             grants.add(grantId);
             submission.setGrants(grants);
+            submissionDTO.setUpdateSubmission(true);   
         }
                 
         return submission;

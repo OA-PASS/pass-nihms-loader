@@ -131,7 +131,7 @@ public class NihmsPassClientServiceTest {
     
     
     /**
-     * Checks that it findGrantByAwardNumber returns URI when one found
+     * Checks that findGrantByAwardNumber returns URI when one found
      */
     @Test
     public void testFindGrantByAwardNumberHasMatch() throws Exception {
@@ -202,7 +202,7 @@ public class NihmsPassClientServiceTest {
         when(mockClient.findByAttribute(eq(Publication.class), eq("pmid"), eq(pmid))).thenReturn(publicationId);
         when(mockClient.readResource(eq(publicationId), eq(Publication.class))).thenReturn(publication);
         
-        Publication matchedPublication = clientService.findPublicationById(pmid, doi);
+        Publication matchedPublication = clientService.findPublicationByPmid(pmid);
         
         assertEquals(publication, matchedPublication);         
     }
@@ -223,9 +223,9 @@ public class NihmsPassClientServiceTest {
         when(mockClient.findByAttribute(Publication.class, "doi", doi)).thenReturn(publicationId);
         when(mockClient.readResource(publicationId, Publication.class)).thenReturn(publication);
         
-        Publication matchedPublication = clientService.findPublicationById(pmid, doi);
+        Publication matchedPublication = clientService.findPublicationByDoi(doi, pmid);
         
-        verify(mockClient, times(2)).findByAttribute(eq(Publication.class), any(), any());
+        verify(mockClient).findByAttribute(eq(Publication.class), any(), any());
         assertEquals(publication, matchedPublication);         
     }
 
@@ -239,9 +239,9 @@ public class NihmsPassClientServiceTest {
         when(mockClient.findByAttribute(Publication.class, "pmid", pmid)).thenReturn(null);
         when(mockClient.findByAttribute(Publication.class, "doi", doi)).thenReturn(null);
         
-        Publication matchedPublication = clientService.findPublicationById(pmid, doi);
+        Publication matchedPublication = clientService.findPublicationByPmid(pmid);
         
-        verify(mockClient, times(2)).findByAttribute(eq(Publication.class), Mockito.anyString(), any());
+        verify(mockClient).findByAttribute(eq(Publication.class), Mockito.anyString(), any());
         assertNull(matchedPublication);         
                 
     }  
@@ -283,8 +283,7 @@ public class NihmsPassClientServiceTest {
         
         assertNull(matchedRepoCopy);       
     }
-    
-    
+        
     
     /**
      * Tests the scenario where a match is found right away using publication+grant 

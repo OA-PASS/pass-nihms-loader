@@ -111,7 +111,8 @@ public class SubmissionTransformerTest {
         
         //Mocking that we have a valid grant URI, PMID, and DOI to use.
         when(clientServiceMock.findMostRecentGrantByAwardNumber(awardNumber)).thenReturn(grant);
-        when(clientServiceMock.findPublicationById(pmid, doi)).thenReturn(null);
+        when(clientServiceMock.findPublicationByPmid(pmid)).thenReturn(null);
+        when(clientServiceMock.findPublicationByDoi(doi, pmid)).thenReturn(null);
         when(clientServiceMock.findJournalByIssn(issn)).thenReturn(new URI(sJournalUri));
         
         when(pmidLookupMock.retrievePubMedRecord(Mockito.anyString())).thenReturn(pubMedRecordMock);
@@ -145,7 +146,8 @@ public class SubmissionTransformerTest {
 
         Grant grant = newTestGrant();
         when(clientServiceMock.findMostRecentGrantByAwardNumber(awardNumber)).thenReturn(grant);
-        when(clientServiceMock.findPublicationById(pmid, doi)).thenReturn(null);
+        when(clientServiceMock.findPublicationByPmid(pmid)).thenReturn(null);
+        when(clientServiceMock.findPublicationByDoi(doi, pmid)).thenReturn(null);
         when(clientServiceMock.findJournalByIssn(issn)).thenReturn(new URI(sJournalUri));
         when(pmidLookupMock.retrievePubMedRecord(pmid)).thenReturn(pubMedRecordMock);
 
@@ -191,7 +193,7 @@ public class SubmissionTransformerTest {
         Grant grant = newTestGrant();
         when(clientServiceMock.findMostRecentGrantByAwardNumber(awardNumber)).thenReturn(grant);
         
-        when(clientServiceMock.findPublicationById(pmid, doi)).thenReturn(publication);
+        when(clientServiceMock.findPublicationByPmid(pmid)).thenReturn(publication);
         when(clientServiceMock.findSubmissionsByPublicationAndUserId(publication.getId(), grant.getPi())).thenReturn(submissions);
         
         when(pmidLookupMock.retrievePubMedRecord(pmid)).thenReturn(pubMedRecordMock);
@@ -239,7 +241,7 @@ public class SubmissionTransformerTest {
         Grant grant = newTestGrant();
         when(clientServiceMock.findMostRecentGrantByAwardNumber(awardNumber)).thenReturn(grant);
         
-        when(clientServiceMock.findPublicationById(pmid, doi)).thenReturn(publication);
+        when(clientServiceMock.findPublicationByPmid(pmid)).thenReturn(publication);
         when(clientServiceMock.findSubmissionsByPublicationAndUserId(publication.getId(), grant.getPi())).thenReturn(submissions);
         
         when(pmidLookupMock.retrievePubMedRecord(pmid)).thenReturn(pubMedRecordMock);
@@ -251,7 +253,9 @@ public class SubmissionTransformerTest {
         checkPmrValues(dto);
         
         assertEquals(false, dto.getSubmission().getSubmitted());
-        assertTrue(!dto.getSubmission().getRepositories().contains(ConfigUtil.getNihmsRepositoryUri()));
+        
+        assertTrue(dto.getSubmission().getRepositories().contains(ConfigUtil.getNihmsRepositoryUri()));
+        
         assertTrue(dto.getSubmission().getGrants().contains(grant.getId()));
         
         assertNull(dto.getSubmission().getSubmittedDate());

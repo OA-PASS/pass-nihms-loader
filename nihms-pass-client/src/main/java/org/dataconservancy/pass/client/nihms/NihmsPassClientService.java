@@ -171,9 +171,9 @@ public class NihmsPassClientService {
      * @param doi
      * @return
      */
-    public Publication findPublicationById(String pmid, String doi) {
+    public Publication findPublicationByPmid(String pmid) {
         if (pmid == null) {
-            throw new RuntimeException("PMID cannot be null when searching for existing Submission.");
+            throw new RuntimeException("PMID cannot be null when searching for existing Publication.");
         }
         
         //if the pmid/publicationId pair is in the cache, retrieve it.
@@ -183,7 +183,32 @@ public class NihmsPassClientService {
             publicationId = findPublicationByArticleId(pmid, "pmid");
         }
         
-        if (publicationId==null && doi!=null) {
+        if (publicationId!=null) {
+            Publication publication = readPublication(publicationId);
+            publicationCache.put(pmid, publicationId);
+            return publication;
+        }
+        
+        return null;
+    }
+    
+
+    /**
+     * Looks up publication using DOI, call should include pmid so that it can check publication
+     * cache first, then checks index for DOI
+     * @param pmid
+     * @param doi
+     * @return
+     */
+    public Publication findPublicationByDoi(String doi, String pmid) {
+        if (pmid == null) {
+            throw new RuntimeException("PMID cannot be null when searching for existing Publication.");
+        }
+
+        //if the pmid/publicationId pair is in the cache, retrieve it.
+        URI publicationId = publicationCache.get(pmid);
+        
+        if (doi!=null) {
             publicationId = findPublicationByArticleId(doi, "doi");
         }
         
@@ -195,6 +220,7 @@ public class NihmsPassClientService {
         
         return null;
     }
+    
 
     /**
      * Find NIHMS RepositoryCopy record for a publicationId

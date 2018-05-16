@@ -57,7 +57,6 @@ public class SubmissionLoader {
      * by implementing retries, failing gracefully etc.
      * @param dto
      */
-    //TODO: need to add the code for dealing with conflicts in Fedora once that functionality is added to the pass-client
     public void load(SubmissionDTO dto) {
         if (dto==null || dto.getSubmission()==null) {
             throw new RuntimeException("A null Submission object was passed to the loader.");
@@ -70,7 +69,7 @@ public class SubmissionLoader {
         if (publicationUri==null) {
             publicationUri = clientService.createPublication(publication);
             publication.setId(publicationUri);
-        } else {
+        } else if (dto.doUpdatePublication()) {
             clientService.updatePublication(publication);
         }
 
@@ -80,7 +79,7 @@ public class SubmissionLoader {
             submission.setPublication(publicationUri);
             submissionUri = clientService.createSubmission(submission);
             submission.setId(submissionUri);
-        } else {
+        } else if (dto.doUpdateSubmission()) {
             clientService.updateSubmission(submission);
         }
 
@@ -91,7 +90,7 @@ public class SubmissionLoader {
                 repositoryCopy.setPublication(publicationUri);
                 clientService.createRepositoryCopy(repositoryCopy);
                 repositoryCopy.setId(repositoryCopyUri);
-            } else {
+            } else if (dto.doUpdateRepositoryCopy()){
                 clientService.updateRepositoryCopy(repositoryCopy);
             }
             
