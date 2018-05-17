@@ -34,15 +34,29 @@ public class ConfigUtil {
     private static final String NIHMS_REPOSITORY_URI_KEY = "nihmsetl.repository.uri"; 
     private static final String NIHMS_REPOSITORY_URI_DEFAULT = "https://example.com/fedora/repositories/1";
                 
-    /** 
-     * Retrieve property from environment variable or set to default
-     * @param key
+    /**
+     * Retrieve property from a system property or renvironment variable or set to default
+     * <p>
+     * Given a string as a system property name (and a default) will:
+     * <ol>
+     * <li>Look up the system property with the matching name, and return it if defined</li>
+     * <li>Try to match an environment variable matching the key transformed TO_UPPER_CASE with periods substituted
+     * with underscores</li>
+     * <li>Use the default of none others match</li>
+     * </ol>
+     * </p>
+     *
+     * @param key - property/variable name in property-normal form (period separators, ideally all lowercas)
      * @param defaultValue
      * @return
      */
     public static String getSystemProperty(final String key, final String defaultValue) {
-        return System.getProperty(key, System.getenv().getOrDefault(key, defaultValue));
+        return System.getProperty(key, System.getenv().getOrDefault(toEnvName(key), defaultValue));
     }
+
+    static String toEnvName(String name) {
+        return name.toUpperCase().replace('.', '_');
+    }    
     
     
     /**
