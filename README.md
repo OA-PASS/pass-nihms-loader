@@ -68,6 +68,7 @@ By default, the application will look for a configuration file named `nihms-load
 The configuration file should look like this: 
 ```
 nihmsetl.data.dir=/path/to/pass/loaders/data
+nihmsetl.loader.cachepath=/path/to/pass/loaders/cache/compliant-cache.data
 nihmsetl.repository.uri=https://example:8080/fcrepo/rest/repositories/aaa/bbb/ccc
 nihmsetl.pmcurl.template=https://www.ncbi.nlm.nih.gov/pmc/articles/%s/
 pass.fedora.baseurl=http://localhost:8080/fcrepo/rest/
@@ -78,6 +79,7 @@ pass.elasticsearch.limit=200
 ```
 
 * `nihmsetl.data.dir` is the path that the CSV files will be read from. If a path is not defined, the app will look for a `/data` folder in the folder containing the java app.
+* `nihmsetl.loader.cachepath` designates a path to a file that will be used to store a cache of completed compliant data so that it is not reprocessed. Note that this file can be deleted to force a complete recheck of the data.  If a path is not defined, this will default to a file at `/cache/compliant-cache.data` in the folder containing the java app.
 * `nihmsetl.repository.uri` the URI for the Repository resource in PASS that represents the PMC repository.
 * `nihmsetl.pmcurl.template` is the template URL used to construct the RepositoryCopy.accessUrl. The article PMC is passed into this URL.
 * `pass.fedora.baseurl` - Base URL for Fedora
