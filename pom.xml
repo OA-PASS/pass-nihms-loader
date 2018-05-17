@@ -48,6 +48,20 @@
     <module>nihms-etl-util</module>
   </modules>
 
+  <profiles>
+    <profile>
+      <id>external</id>
+      <activation>
+        <property>
+          <name>external</name>
+        </property>
+      </activation>
+      <properties>
+        <scp.port>122</scp.port>
+      </properties>
+    </profile>
+  </profiles>
+
   <build>    
     <pluginManagement>
       <plugins>
@@ -71,6 +85,24 @@
               </goals>
             </execution>
           </executions>
+        </plugin>
+
+
+        <plugin>
+           <groupId>org.apache.maven.plugins</groupId>
+           <artifactId>maven-deploy-plugin</artifactId>
+           <version>${maven.deploy.plugin.version}</version>
+           <configuration>
+             <retryFailedDeploymentCount>5</retryFailedDeploymentCount>
+           </configuration>
+           <!-- See https://jira.codehaus.org/browse/WAGON-393 -->
+           <dependencies>
+             <dependency>
+               <groupId>org.apache.maven.wagon</groupId>
+               <artifactId>wagon-ssh</artifactId>
+               <version>${maven.wagon.ssh.version}</version>
+             </dependency>
+           </dependencies>
         </plugin>
     
         <plugin>
@@ -256,6 +288,22 @@
       </snapshots>
     </repository>
   </repositories>
+
+  <distributionManagement>
+    <repository>
+      <id>dc.public.releases</id>
+      <name>Data Conservancy Release Maven Repository</name>
+      <url>scp://maven.dataconservancy.org:${scp.port}/data/maven-dc/public/releases/</url>
+    </repository>
+
+    <snapshotRepository>
+      <id>dc.public.snapshots</id>
+      <name>Data Conservancy Snapshot Maven Repository</name>
+      <url>scp://maven.dataconservancy.org:${scp.port}/data/maven-dc/public/snapshots/</url>
+      <uniqueVersion>false</uniqueVersion>
+    </snapshotRepository>
+
+  </distributionManagement>  
   
   
 </project>
