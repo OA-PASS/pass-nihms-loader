@@ -147,6 +147,14 @@ public class SubmissionDTO {
 
     
     /**
+     * @return updateRepositoryCopy true if update should be performed
+     */
+    public boolean doUpdate() {
+        return (updateRepositoryCopy || updateSubmission  || updatePublication);
+    }
+
+    
+    /**
      * @param updateRepositoryCopy the updateRepositoryCopy to set
      */
     public void setUpdateRepositoryCopy(boolean updateRepositoryCopy) {

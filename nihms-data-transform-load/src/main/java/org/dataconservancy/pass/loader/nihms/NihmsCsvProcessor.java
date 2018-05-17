@@ -66,6 +66,7 @@ public class NihmsCsvProcessor {
     private static final String ARTICLETITLE_HEADING = "Article Title";
     private static final Integer ARTICLETITLE_COLNUM = 10;
     
+    
     /**
      * Lists expected headers and their column number to support header validation
      */
@@ -152,10 +153,10 @@ public class NihmsCsvProcessor {
             pub = new NihmsPublication(status, row.get(PMID_COLNUM), row.get(GRANTID_COLNUM), row.get(NIHMSID_COLNUM), 
                                          row.get(PMCID_COLNUM), row.get(FILEDEPOSIT_COLNUM), row.get(INITIALAPPROVAL_COLNUM), 
                                          row.get(TAGGINGCOMPLETE_COLNUM), row.get(FINALAPPROVAL_COLNUM), row.get(ARTICLETITLE_COLNUM));
-
+            
             LOG.info("NIHMS record pmid={} is being processed", pub.getPmid());
             pubConsumer.accept(pub);  
-            LOG.info("NIHMS record pmid={} was transformed and loaded successfully", pub.getPmid());                
+            LOG.info("NIHMS record pmid={} was processed successfully", pub.getPmid()); 
         }
         catch (Exception ex) {
             failCount = failCount + 1;

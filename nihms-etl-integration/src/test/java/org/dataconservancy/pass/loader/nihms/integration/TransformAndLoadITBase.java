@@ -22,8 +22,12 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.junit.After;
+import org.junit.Before;
+
 import org.dataconservancy.pass.client.PassClient;
 import org.dataconservancy.pass.client.PassClientFactory;
+import org.dataconservancy.pass.loader.nihms.util.FileUtil;
 import org.dataconservancy.pass.model.Grant;
 import org.dataconservancy.pass.model.Grant.AwardStatus;
 import org.joda.time.DateTime;
@@ -49,6 +53,22 @@ public abstract class TransformAndLoadITBase {
             System.setProperty("nihmsetl.data.dir", path);
         }
     }
+    
+    String cachepath = null;
+
+    @Before
+    public void startup() {
+        cachepath = FileUtil.getCurrentDirectory() +"/cache/compliant-cache.data";
+        System.setProperty("nihmsetl.loader.cachepath", cachepath);
+    }
+    
+    @After
+    public void cleanup() {
+        File cachefile = new File(cachepath);
+        if (cachefile.exists()) {
+            cachefile.delete();
+        }
+    }    
     
     protected final PassClient client = PassClientFactory.getPassClient();
     

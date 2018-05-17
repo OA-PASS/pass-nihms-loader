@@ -239,7 +239,9 @@ public class NihmsPublicationToSubmission {
         if (publicationId != null) {
             repoCopy = clientService.findNihmsRepositoryCopyForPubId(publicationId);
         }
-        if (repoCopy==null && !nullOrEmpty(pub.getNihmsId())) { //only create if there is at least a nihms ID indicating something is started
+        if (repoCopy==null 
+                && (!nullOrEmpty(pub.getNihmsId()) || !nullOrEmpty(pub.getPmcId()))) { 
+             //only create if there is at least a nihms ID indicating something is started
             repoCopy = initiateNewRepositoryCopy(pub, publicationId);
             submissionDTO.setUpdateRepositoryCopy(true);
         } else if (repoCopy != null) {

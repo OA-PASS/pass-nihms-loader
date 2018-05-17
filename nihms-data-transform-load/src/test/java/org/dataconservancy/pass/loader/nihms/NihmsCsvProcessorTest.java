@@ -15,6 +15,8 @@
  */
 package org.dataconservancy.pass.loader.nihms;
 
+import java.io.File;
+
 import java.net.URISyntaxException;
 
 import java.nio.file.Path;
@@ -22,10 +24,13 @@ import java.nio.file.Paths;
 
 import java.util.function.Consumer;
 
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
 import org.dataconservancy.pass.loader.nihms.model.NihmsPublication;
 import org.dataconservancy.pass.loader.nihms.model.NihmsStatus;
+import org.dataconservancy.pass.loader.nihms.util.FileUtil;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -40,12 +45,29 @@ public class NihmsCsvProcessorTest {
 
     private int count = 0;
     
+    String cachepath = null;
+    
+    @Before
+    public void startup() {
+        cachepath = FileUtil.getCurrentDirectory() +"/cache/compliant-cache.data";
+        System.setProperty("nihmsetl.loader.cachepath", cachepath);
+    }
+    
+    @After
+    public void cleanup() {
+        File cachefile = new File(cachepath);
+        if (cachefile.exists()) {
+            cachefile.delete();
+        }
+    }    
+
     /**
      * Check the Iterator reads in CSV
      * @throws URISyntaxException 
      */
     @Test
     public void testReadCsv() throws URISyntaxException {
+        
         Path resource = Paths.get(NihmsCsvProcessorTest.class.getResource("/compliant_NihmsData.csv").toURI());
 
         NihmsCsvProcessor processor = new NihmsCsvProcessor(resource, NihmsStatus.COMPLIANT);
