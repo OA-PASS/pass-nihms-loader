@@ -13,7 +13,7 @@ The following are required to run this tool:
 * Create a data folder that files will be downloaded to.
 
 ### Data Harvest Configuration
-There are several ways to configure the Data Harvest CLI. You can use a configuration file, environment variables, system variables, or a combination of these. The configuration file will set system properties. In the absence of a config file, system properties will be used, and in the absence of those, environment variables will be used.
+There are several ways to configure the Data Harvest CLI. You can use a configuration file, environment variables, system variables, or a combination of these. The configuration file will set system properties. In the absence of a config file, system properties will be used, and in the absence of those, environment variables will be used. Note that to use environment variables, the system property name must be converted to upper case, and the periods replaced with underscores. For example, to define `nihmsetl.data.dir` as an environment variable, use `NIHMSETL_DATA_DIR` instead.
 
 By default, the application will look for a configuration file named `nihms-harvest.properties` in the folder containing the java application. You can override the location of the properties file by defining an environment variable for `nihmsetl.harvester.configfile` e.g. 
 ```
