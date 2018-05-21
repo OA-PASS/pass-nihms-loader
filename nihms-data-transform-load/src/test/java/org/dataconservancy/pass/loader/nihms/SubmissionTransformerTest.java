@@ -162,7 +162,7 @@ public class SubmissionTransformerTest {
         assertNull(dto.getSubmission().getId());
         assertNull(dto.getRepositoryCopy().getId());
         assertEquals(CopyStatus.IN_PROGRESS, dto.getRepositoryCopy().getCopyStatus());
-        assertEquals(nihmsId, dto.getRepositoryCopy().getExternalIds().get(0));
+        assertEquals("NIHMS" + nihmsId, dto.getRepositoryCopy().getExternalIds().get(0));
         assertEquals(true, dto.getSubmission().getSubmitted());
         assertNotNull(dto.getSubmission().getSubmittedDate());
         
@@ -210,8 +210,8 @@ public class SubmissionTransformerTest {
         
         assertNull(dto.getRepositoryCopy().getId());
         assertEquals(CopyStatus.COMPLETE, dto.getRepositoryCopy().getCopyStatus());
-        assertTrue(dto.getRepositoryCopy().getExternalIds().contains(nihmsId));
-        assertTrue(dto.getRepositoryCopy().getExternalIds().contains(pmcId));
+        assertTrue(dto.getRepositoryCopy().getExternalIds().contains("NIHMS" + nihmsId));
+        assertTrue(dto.getRepositoryCopy().getExternalIds().contains("PMC" + pmcId));
         assertEquals(2, dto.getRepositoryCopy().getExternalIds().size());
         
     }
