@@ -21,6 +21,9 @@ package org.dataconservancy.pass.loader.nihms.model;
  */
 public class NihmsPublication {
     
+    private static final String NIHMSID_PREFIX = "NIHMS";
+    private static final String PMCID_PREFIX = "PMC";
+    
     /** 
      * NIHMS submission CSV field "PMID" 
      */
@@ -100,11 +103,11 @@ public class NihmsPublication {
         this.pmid = pmid;
         this.grantNumber = grantNumber;
         this.nihmsStatus = nihmsStatus;
-        if (nihmsId!=null && nihmsId.length()>0) {
-            this.nihmsId = "NIHMS" + nihmsId;
+        if (nihmsId!=null && nihmsId.length()>0 && !nihmsId.startsWith(NIHMSID_PREFIX)) {
+            this.nihmsId = NIHMSID_PREFIX + nihmsId;
         }
-        if (pmcId!=null && pmcId.length()>0) {
-            this.pmcId = "PMC" + pmcId;
+        if (pmcId!=null && pmcId.length()>0 && !nihmsId.startsWith(PMCID_PREFIX)) {
+            this.pmcId = PMCID_PREFIX + pmcId;
         }
         this.fileDepositedDate = fileDepositedDate;
         this.initialApprovalDate = initialApprovalDate;
@@ -203,9 +206,13 @@ public class NihmsPublication {
 
     
     /**
+     * Sets the NIHMSID, will add the NIHMS prefix if missing
      * @param nihmsId the nihmsId to set
      */
     public void setNihmsId(String nihmsId) {
+        if (nihmsId!=null && nihmsId.length()>0 && !nihmsId.startsWith(NIHMSID_PREFIX)) {
+            nihmsId = NIHMSID_PREFIX + nihmsId;
+        }
         this.nihmsId = nihmsId;
     }  
 
@@ -219,9 +226,13 @@ public class NihmsPublication {
 
     
     /**
+     * Sets the PMCID, will add the PMC prefix if missing
      * @param pmcId the pmcId to set
      */
     public void setPmcId(String pmcId) {
+        if (pmcId!=null && pmcId.length()>0 && !nihmsId.startsWith(PMCID_PREFIX)) {
+            pmcId = PMCID_PREFIX + pmcId;
+        }
         this.pmcId = pmcId;
     }
 
