@@ -38,50 +38,67 @@ import static org.junit.Assert.assertTrue;
  */
 public class CompletedPublicationsCacheTest {
 
+    private static CompletedPublicationsCache completedPubsCache;
+    private String cachepath;
     
-    String cachepath = null;
-
     @Before
     public void startup() {
         cachepath = FileUtil.getCurrentDirectory() +"/cache/compliant-cache.data";
         System.setProperty("nihmsetl.loader.cachepath", cachepath);
+        completedPubsCache = CompletedPublicationsCache.getInstance();
     }
     
     @After
     public void cleanup() {
-        File cachefile = new File(cachepath);
-        if (cachefile.exists()) {
-            cachefile.delete();
-        }
+        completedPubsCache.clear();
     }    
 
     /**
      * Makes sure cache contains items after you add them
-     * Also ensure that when you create a new cache object 
-     * that it reads in the existing values correctly
      */
     @Test
     public void testAddThenFindMatch() {
-        CompletedPublicationsCache cache = new CompletedPublicationsCache();
         String pmid1 = "123456";
         String pmid2 = "987654";
-        String awardNum1 = "AB1 FI12345";
-        String awardNum2 = "AB2 RF21355";
+        String awardNum1 = "AB1 EI12345";
+        String awardNum2 = "AB2 MF21355";
         
-        assertFalse(cache.contains(pmid1, awardNum1));
-        assertFalse(cache.contains(pmid2, awardNum2));
+        assertFalse(completedPubsCache.contains(pmid1, awardNum1));
+        assertFalse(completedPubsCache.contains(pmid2, awardNum2));
         
-        cache.add(pmid1, awardNum1);
-        cache.add(pmid2, awardNum2);
+        completedPubsCache.add(pmid1, awardNum1);
+        completedPubsCache.add(pmid2, awardNum2);
         
-        assertTrue(cache.contains(pmid1, awardNum1));
-        assertTrue(cache.contains(pmid2, awardNum2));
+        assertTrue(completedPubsCache.contains(pmid1, awardNum1));
+        assertTrue(completedPubsCache.contains(pmid2, awardNum2));
+       
+    }
+
+    /**
+     * Makes sure cache clear works
+     */
+    @Test
+    public void testClearCompletedPublicationsCache() {
+        String pmid1 = "123456";
+        String pmid2 = "987654";
+        String awardNum1 = "AB1 EI12345";
+        String awardNum2 = "AB2 MF21355";
         
-        cache = null;
-        //recreate cache object and check we can still find the cached items
-        CompletedPublicationsCache cache2 = new CompletedPublicationsCache();
-        assertTrue(cache2.contains(pmid1, awardNum1));
-        assertTrue(cache2.contains(pmid2, awardNum2));        
+        assertFalse(completedPubsCache.contains(pmid1, awardNum1));
+        assertFalse(completedPubsCache.contains(pmid2, awardNum2));
+        
+        completedPubsCache.add(pmid1, awardNum1);
+        completedPubsCache.add(pmid2, awardNum2);
+        
+        assertTrue(completedPubsCache.contains(pmid1, awardNum1));
+        assertTrue(completedPubsCache.contains(pmid2, awardNum2));
+       
+        completedPubsCache.clear();
+
+        assertFalse(completedPubsCache.contains(pmid1, awardNum1));
+        assertFalse(completedPubsCache.contains(pmid2, awardNum2));
+        
+        
     }
 
     /**
@@ -90,24 +107,23 @@ public class CompletedPublicationsCacheTest {
      */
     @Test
     public void testDoesNotAddDuplicates() throws Exception {
-        CompletedPublicationsCache cache = new CompletedPublicationsCache();
         String pmid1 = "123456";
         String pmid2 = "987654";
-        String awardNum1 = "AB1 FI12345";
-        String awardNum2 = "AB2 RF21355";
+        String awardNum1 = "AB1 EI12345";
+        String awardNum2 = "AB2 MF21355";
         
-        assertFalse(cache.contains(pmid1, awardNum1));
-        assertFalse(cache.contains(pmid2, awardNum2));
+        assertFalse(completedPubsCache.contains(pmid1, awardNum1));
+        assertFalse(completedPubsCache.contains(pmid2, awardNum2));
         
-        cache.add(pmid1, awardNum1);
-        cache.add(pmid2, awardNum2);
-        cache.add(pmid1, awardNum1);
-        cache.add(pmid2, awardNum2);
-        cache.add(pmid1, awardNum1);
-        cache.add(pmid2, awardNum2);
+        completedPubsCache.add(pmid1, awardNum1);
+        completedPubsCache.add(pmid2, awardNum2);
+        completedPubsCache.add(pmid1, awardNum1);
+        completedPubsCache.add(pmid2, awardNum2);
+        completedPubsCache.add(pmid1, awardNum1);
+        completedPubsCache.add(pmid2, awardNum2);
         
-        assertTrue(cache.contains(pmid1, awardNum1));
-        assertTrue(cache.contains(pmid2, awardNum2));
+        assertTrue(completedPubsCache.contains(pmid1, awardNum1));
+        assertTrue(completedPubsCache.contains(pmid2, awardNum2));
 
         @SuppressWarnings("unchecked")
         List<String> processed = new ArrayList<String>(FileUtils.readLines(new File(cachepath)));

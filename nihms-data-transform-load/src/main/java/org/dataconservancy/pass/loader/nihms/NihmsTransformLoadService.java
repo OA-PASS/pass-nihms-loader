@@ -48,14 +48,14 @@ public class NihmsTransformLoadService {
     private NihmsPassClientService nihmsPassClient;
     
     private PmidLookup pmidLookup;
-
-    private CompletedPublicationsCache compliantCache = null;
     
+    private static CompletedPublicationsCache completedPubsCache;
+   
     
     public NihmsTransformLoadService() {
         nihmsPassClient = new NihmsPassClientService();
         pmidLookup = new PmidLookup();
-        compliantCache = new CompletedPublicationsCache();
+        completedPubsCache = CompletedPublicationsCache.getInstance();
     }
 
     /**
@@ -66,7 +66,7 @@ public class NihmsTransformLoadService {
     public NihmsTransformLoadService(NihmsPassClientService passClientService, PmidLookup pmidLookup) {
         this.nihmsPassClient=passClientService;
         this.pmidLookup=pmidLookup;
-        compliantCache = new CompletedPublicationsCache();
+        completedPubsCache = CompletedPublicationsCache.getInstance();
     }
     
     
@@ -114,13 +114,13 @@ public class NihmsTransformLoadService {
      * moving on
      * @param pub the NihmsPublication object
      */
-    private void transformAndLoadNihmsPub(NihmsPublication pub) {   
+    public void transformAndLoadNihmsPub(NihmsPublication pub) {   
         final int MAX_ATTEMPTS = 3; //applies to UpdateConflictExceptions only, which can be recovered from
         int attempt = 0;
         
         // if the record is compliant, let's check the cache to see if it has been processed previously
         if (pub.getNihmsStatus().equals(NihmsStatus.COMPLIANT)
-                && compliantCache.contains(pub.getPmid(), pub.getGrantNumber())) {
+                && completedPubsCache.contains(pub.getPmid(), pub.getGrantNumber())) {
             LOG.info("Compliant NIHMS record with pmid {} and award number \"{}\" has been processed in a previous load", pub.getPmid(), pub.getGrantNumber());
             return;
         }
@@ -150,7 +150,7 @@ public class NihmsTransformLoadService {
         if (pub.getNihmsStatus().equals(NihmsStatus.COMPLIANT)
                 && !nullOrEmpty(pub.getPmcId())) {
             //add to cache so it doesn't check it again once it has been processed and has a pmcid assigned
-            compliantCache.add(pub.getPmid(), pub.getGrantNumber());
+            completedPubsCache.add(pub.getPmid(), pub.getGrantNumber());
             LOG.debug("Added pmid {} and grant \"{}\" to cache", pub.getPmid(), pub.getGrantNumber());
         }
     }

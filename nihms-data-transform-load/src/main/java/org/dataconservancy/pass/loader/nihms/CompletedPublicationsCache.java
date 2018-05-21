@@ -39,64 +39,98 @@ import static org.dataconservancy.pass.loader.nihms.util.ProcessingUtil.nullOrEm
  */
 public class CompletedPublicationsCache {    
 
+    private Set<String> completedPubsCache;
+    
+    private File cacheFile;
+    
+    private static CompletedPublicationsCache completedPubsSpace = null;
+
     private static final String CACHEPATH_KEY = "nihmsetl.loader.cachepath";
     
     private static final String CACHEPATH_DEFAULT = "/cache/compliant-cache.data";
-        
-    private File cacheFile = null;
     
-    private Set<String> processed;
-    
-    /**
-     * Check for cache file and load data into memory
-     */
-    @SuppressWarnings("unchecked")
-    public CompletedPublicationsCache() {
+    private CompletedPublicationsCache() {
+        completedPubsCache = new HashSet<String>();
         String sCacheFile = ConfigUtil.getSystemProperty(CACHEPATH_KEY, FileUtil.getCurrentDirectory() + CACHEPATH_DEFAULT);
-        try {
-            File cacheFile = new File(sCacheFile);
-            if (!cacheFile.exists()) {
-                cacheFile.getParentFile().mkdirs();
-                cacheFile.createNewFile();
-            }
-            this.cacheFile = cacheFile;
-            // read in cached values
-            processed = new HashSet<String>(FileUtils.readLines(cacheFile));
-        } catch (Exception ex) {
-            throw new RuntimeException("Could not create cache file to hold compliant records at path " + sCacheFile, ex);
-        }
+        cacheFile = new File(sCacheFile);
+        loadFromFile();
+    }
+
+    public static synchronized CompletedPublicationsCache getInstance() {
+      if (completedPubsSpace == null) {
+          completedPubsSpace = new CompletedPublicationsCache();
+      }
+      return completedPubsSpace;
     }
     
     /**
-     * Check if file contains record
-     * @param pmid
-     * @param awardNumber
-     * @return
-     */
-    public boolean contains(String pmid, String awardNumber) {
-        if (!nullOrEmpty(pmid) && !nullOrEmpty(awardNumber)) {
-            String cachevalue = pmid + "|" + awardNumber;
-            return processed.contains(cachevalue);
-            
-        }
-        return false;
-    }
-    
-    /**
-     * Add a record to the cache file
+     * Add pmid/awardNumber combination to set
      * @param pmid
      * @param awardNumber
      */
-    public void add(String pmid, String awardNumber) {
+    public synchronized void add(String pmid, String awardNumber) {
         if (!nullOrEmpty(pmid) && !nullOrEmpty(awardNumber) 
                 && !contains(pmid, awardNumber)) {
             String cachevalue = pmid + "|" + awardNumber;
             try (PrintWriter output = new PrintWriter(new FileWriter(cacheFile, true))){
-                processed.add(cachevalue);
                 output.println(cachevalue);
+                completedPubsCache.add(cachevalue);
             } catch (Exception ex) {
                 throw new RuntimeException("Problem writing cachevalue: " + cachevalue + " to cache");
             }
+        }
+    }
+    
+    /**
+     * Check if it contains pmid/award number combination
+     * @param key
+     * @return
+     */
+    public synchronized boolean contains(String pmid, String awardNumber) {
+        if (!nullOrEmpty(pmid) && !nullOrEmpty(awardNumber)) {
+            String cachevalue = pmid + "|" + awardNumber;
+            return completedPubsCache.contains(cachevalue);
+        }
+        return false;
+    }
+
+    /**
+     * Get number of items in cache
+     * @return
+     */
+    public synchronized int size() {
+        return completedPubsCache.size();
+    }
+
+    /**
+     * Empty cache
+     */
+    public synchronized void clear() {
+        try {
+            if (cacheFile.exists()) {
+                cacheFile.delete();
+            }
+            completedPubsCache.clear();
+        } catch (Exception ex) {
+            throw new RuntimeException("Could not clear cache file at path " + cacheFile.getAbsolutePath(), ex);            
+        }
+    }
+    
+    
+    /** 
+     * Load contents of cache file into memory from file
+     */
+    @SuppressWarnings("unchecked")
+    public synchronized void loadFromFile() {
+        try {
+            if (!cacheFile.exists()) {
+                cacheFile.getParentFile().mkdirs();
+                cacheFile.createNewFile();
+            }
+            // read in cached values
+            completedPubsCache = new HashSet<String>(FileUtils.readLines(cacheFile));
+        } catch (Exception ex) {
+            throw new RuntimeException("Could not create cache file to hold compliant records at path " + cacheFile.getAbsolutePath(), ex);
         }
     }
     
