@@ -155,7 +155,9 @@ public class NihmsPassClientService {
             grants.add(readGrant(id));
         }
         
-        if (grants.size()>0) {
+        if (grants.size()==1) {
+            return grants.get(0);
+        } else if (grants.size()>0) {
             Grant mostRecentGrant = Collections.max(grants, Comparator.comparing(Grant::getStartDate));
             grantCache.put(awardNumber, mostRecentGrant.getId());
             return mostRecentGrant;
