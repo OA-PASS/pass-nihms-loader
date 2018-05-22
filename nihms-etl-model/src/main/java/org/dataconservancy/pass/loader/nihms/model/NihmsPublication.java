@@ -104,11 +104,13 @@ public class NihmsPublication {
         this.grantNumber = grantNumber;
         this.nihmsStatus = nihmsStatus;
         if (nihmsId!=null && nihmsId.length()>0 && !nihmsId.startsWith(NIHMSID_PREFIX)) {
-            this.nihmsId = NIHMSID_PREFIX + nihmsId;
+            nihmsId = NIHMSID_PREFIX + nihmsId;
         }
-        if (pmcId!=null && pmcId.length()>0 && !nihmsId.startsWith(PMCID_PREFIX)) {
-            this.pmcId = PMCID_PREFIX + pmcId;
+        this.nihmsId = nihmsId;
+        if (pmcId!=null && pmcId.length()>0 && !pmcId.startsWith(PMCID_PREFIX)) {
+            pmcId = PMCID_PREFIX + pmcId;
         }
+        this.pmcId = pmcId;
         this.fileDepositedDate = fileDepositedDate;
         this.initialApprovalDate = initialApprovalDate;
         this.taggingCompleteDate = taggingCompleteDate;
@@ -230,7 +232,7 @@ public class NihmsPublication {
      * @param pmcId the pmcId to set
      */
     public void setPmcId(String pmcId) {
-        if (pmcId!=null && pmcId.length()>0 && !nihmsId.startsWith(PMCID_PREFIX)) {
+        if (pmcId!=null && pmcId.length()>0 && !pmcId.startsWith(PMCID_PREFIX)) {
             pmcId = PMCID_PREFIX + pmcId;
         }
         this.pmcId = pmcId;
