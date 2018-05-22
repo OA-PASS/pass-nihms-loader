@@ -88,7 +88,7 @@ public class SubmissionLoader {
             URI repositoryCopyUri = repositoryCopy.getId();
             if (repositoryCopyUri==null) {
                 repositoryCopy.setPublication(publicationUri);
-                clientService.createRepositoryCopy(repositoryCopy);
+                repositoryCopyUri = clientService.createRepositoryCopy(repositoryCopy);
                 repositoryCopy.setId(repositoryCopyUri);
             } else if (dto.doUpdateRepositoryCopy()){
                 clientService.updateRepositoryCopy(repositoryCopy);
@@ -99,7 +99,12 @@ public class SubmissionLoader {
             if (deposit!=null && deposit.getRepositoryCopy()==null) {
                 deposit.setRepositoryCopy(repositoryCopyUri);
                 clientService.updateDeposit(deposit);
+            } else if (deposit!=null && !deposit.getRepositoryCopy().equals(repositoryCopyUri)) {
+                //this shouldn't happen in principle, but if it does it should be checked.
+                LOG.warn("A NIHMS Deposit with id {} was found for the Submission but it is associated with a different RepositoryCopy ({}) from the one processed ({}). "
+                        + "This may indicate a data error, please verify the RepositoryCopy association for this Deposit", deposit.getId(), deposit.getRepositoryCopy(), repositoryCopyUri);
             }
+            
         }
         
     }    
