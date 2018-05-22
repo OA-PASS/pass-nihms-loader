@@ -356,9 +356,9 @@ public class NihmsPublicationToSubmission {
             submissionDTO.setUpdateSubmission(true);   
         }
         
-        // if we have a repository copy, and there is only one repository listed on the submission (would be the nihsm repo)
+        // if we have a repository copy, and there is only one repository listed on the submission (would be the nihms repo)
         // but the submission is not marked as submitted, set it as submitted and use file deposit date as submitted date
-        // Wwhen a submission is set to submitted by this transform process, it becomes Source.OTHER regardless of where it started
+        // When a submission is set to submitted by this transform process, it becomes Source.OTHER regardless of where it started
         if (submission.getRepositories().size()==1
                 && hasRepoCopy 
                 && !submission.getSubmitted()) {
