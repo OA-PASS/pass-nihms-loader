@@ -144,12 +144,6 @@ public class NihmsPassClientService {
             grantIds.addAll(client.findAllByAttribute(Grant.class, AWARD_NUMBER_FLD, modAwardNum));
         }
         
-        if (modAwardNum.length()>6 && modAwardNum.substring(5,6).equals("0")){
-            //try removing 0 on 6th character - COEUS data removes this
-            modAwardNum = modAwardNum.substring(0, 5) + modAwardNum.substring(6);
-            grantIds.addAll(client.findAllByAttribute(Grant.class, AWARD_NUMBER_FLD, modAwardNum));            
-        }
-        
         List<Grant> grants = new ArrayList<Grant>();
         for (URI id : grantIds) {
             grants.add(readGrant(id));

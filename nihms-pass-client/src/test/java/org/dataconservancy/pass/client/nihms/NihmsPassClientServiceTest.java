@@ -161,34 +161,6 @@ public class NihmsPassClientServiceTest {
 
     
     /**
-     * Checks that findGrantByAwardNumber will try awardNumber with the "0" removed at position 6
-     * if it fails to find one without the space.
-     */
-    @Test
-    public void testFindGrantByAwardNumberHasMatchWithRemoved0() throws Exception {
-        String awardNumWith0 = "R01AB01234";
-        String awardNumWithout0 = "R01AB1234";
-        Grant grant1 = new Grant();
-        grant1.setId(grantId);
-        grant1.setAwardNumber(awardNumWith0);
-        grant1.setStartDate(new DateTime().minusYears(1));
-
-        Set<URI> grantIds = new HashSet<URI>();
-        grantIds.add(grantId);
-        
-        when(mockClient.findAllByAttribute(eq(Grant.class), eq("awardNumber"), eq(awardNumWith0))).thenReturn(new HashSet<URI>());
-        when(mockClient.findAllByAttribute(eq(Grant.class), eq("awardNumber"), eq(awardNumWithout0))).thenReturn(grantIds);
-        when(mockClient.readResource(eq(grantId), eq(Grant.class))).thenReturn(grant1);
-
-        Grant matchedGrant = clientService.findMostRecentGrantByAwardNumber(awardNumWith0);
-        verify(mockClient).findAllByAttribute(eq(Grant.class), eq("awardNumber"), eq(awardNumWith0)); 
-        verify(mockClient).findAllByAttribute(eq(Grant.class), eq("awardNumber"), eq(awardNumWithout0)); 
-        
-        assertEquals(grant1, matchedGrant);        
-    }
-    
-    
-    /**
      * Checks that findPublicationById returns match based on PMID
      */
     @Test
