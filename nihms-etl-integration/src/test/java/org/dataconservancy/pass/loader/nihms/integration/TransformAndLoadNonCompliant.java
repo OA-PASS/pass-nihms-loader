@@ -149,15 +149,14 @@ public class TransformAndLoadNonCompliant extends NihmsSubmissionEtlITBase {
         Submission preexistingSub = newSubmission1(grantUri1);
         preexistingSub.setSubmitted(true);
         preexistingSub.setSource(Source.PASS);
-        URI preexistingSubUri = client.createResource(preexistingSub);
-        //get full record from database 
-        preexistingSub = client.readResource(preexistingSubUri, Submission.class);
+        preexistingSub = client.createAndReadResource(preexistingSub, Submission.class);
         
         Deposit preexistingDeposit = new Deposit();
         preexistingDeposit.setDepositStatus(DepositStatus.SUBMITTED);
         preexistingDeposit.setRepository(ConfigUtil.getNihmsRepositoryUri());
-        preexistingDeposit.setSubmission(preexistingSubUri);
-        URI preexistingDepositUri = client.createResource(preexistingDeposit);
+        preexistingDeposit.setSubmission(preexistingSub.getId());
+        preexistingDeposit = client.createAndReadResource(preexistingDeposit, Deposit.class);
+        URI preexistingDepositUri = preexistingDeposit.getId();
         
         //wait for fake pre-existing deposit to appear
         attempt(RETRIES, () -> {
@@ -178,7 +177,7 @@ public class TransformAndLoadNonCompliant extends NihmsSubmissionEtlITBase {
             repocopyUri = uri;
         });
         
-        Submission reloadedPreexistingSub = client.readResource(preexistingSubUri, Submission.class);
+        Submission reloadedPreexistingSub = client.readResource(preexistingSub.getId(), Submission.class);
         assertEquals(preexistingSub, reloadedPreexistingSub); //should not have been affected
 
         //we should have ONLY ONE submission for this pmid
@@ -231,8 +230,6 @@ public class TransformAndLoadNonCompliant extends NihmsSubmissionEtlITBase {
         repos.add(new URI("fake:repo"));
         preexistingSub.setRepositories(repos);
         URI preexistingSubUri = client.createResource(preexistingSub);
-        //get full record from database 
-        preexistingSub = client.readResource(preexistingSubUri, Submission.class);
 
         //now make sure we wait for submission, should only be one from the test
         attempt(RETRIES, () -> {

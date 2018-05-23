@@ -151,15 +151,12 @@ public class TransformAndLoadInProcess extends NihmsSubmissionEtlITBase {
         pubUri = client.createResource(publication);
         
         //a submission existed but had no repocopy
-        Submission preexistingSub = newSubmission1(grantUri1);
-        URI preexistingSubUri = client.createResource(preexistingSub);
-        //get full record from database 
-        preexistingSub = client.readResource(preexistingSubUri, Submission.class);
+        Submission preexistingSub = client.createAndReadResource(newSubmission1(grantUri1), Submission.class);
         
         Deposit preexistingDeposit = new Deposit();
         preexistingDeposit.setDepositStatus(DepositStatus.SUBMITTED);
         preexistingDeposit.setRepository(ConfigUtil.getNihmsRepositoryUri());
-        preexistingDeposit.setSubmission(preexistingSubUri);
+        preexistingDeposit.setSubmission(preexistingSub.getId());
         URI preexistingDepositUri = client.createResource(preexistingDeposit);
         
         //wait for fake pre-existing deposit to appear
@@ -181,7 +178,7 @@ public class TransformAndLoadInProcess extends NihmsSubmissionEtlITBase {
             repocopyUri = uri;
         });
         
-        Submission reloadedPreexistingSub = client.readResource(preexistingSubUri, Submission.class);
+        Submission reloadedPreexistingSub = client.readResource(preexistingSub.getId(), Submission.class);
         assertEquals(preexistingSub, reloadedPreexistingSub); //should not have been affected
 
         //we should have ONLY ONE submission for this pmid
