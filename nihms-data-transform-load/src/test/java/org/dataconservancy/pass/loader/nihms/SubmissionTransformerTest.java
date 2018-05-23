@@ -225,6 +225,9 @@ public class SubmissionTransformerTest {
     public void testTransformUpdatePubAddGrantRepoToSubNoRepoCopy() throws Exception {
         
         NihmsPublication pub = newTestPub();
+        //if its compliant it will be marked as submitted regardless of whether there is a repoCopy,
+        // so make this pub in-process.
+        pub.setNihmsStatus(NihmsStatus.IN_PROCESS);
         
         Publication publication = newTestPublication();
         

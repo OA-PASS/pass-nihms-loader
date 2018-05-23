@@ -140,7 +140,7 @@ public class NihmsPublicationToSubmission {
         RepositoryCopy repoCopy = retrieveOrCreateRepositoryCopy(pub, publication.getId());
         submissionDTO.setRepositoryCopy(repoCopy);
 
-        Submission submission = retrieveOrCreateSubmission(publication.getId(), grant, (repoCopy!=null), pub.getFileDepositedDate());
+        Submission submission = retrieveOrCreateSubmission(publication.getId(), grant, (repoCopy!=null), pub.getNihmsStatus(), pub.getFileDepositedDate());
         submissionDTO.setSubmission(submission);
         
         return submissionDTO;
@@ -313,7 +313,7 @@ public class NihmsPublicationToSubmission {
     //
     //****************************************************
     
-    private Submission retrieveOrCreateSubmission(URI publicationUri, Grant grant, boolean hasRepoCopy, String depositedDate) {
+    private Submission retrieveOrCreateSubmission(URI publicationUri, Grant grant, boolean hasRepoCopy, NihmsStatus nihmsStatus, String depositedDate) {
         Submission submission = null;
         URI grantId = grant.getId();
 
@@ -336,7 +336,7 @@ public class NihmsPublicationToSubmission {
                     throw new RuntimeException(msg);
                 }
                     
-                //no existing submission for nihms repo, lets see if we can find an appropriate submission 
+                // no existing submission for nihms repo, lets see if we can find an appropriate submission 
                 // to add repository to instead of creating a new one. First one found will do
                 if (submission == null) {
                     submission = submissions.stream().filter(s -> !s.getSubmitted()).findFirst().orElse(null);
@@ -356,11 +356,12 @@ public class NihmsPublicationToSubmission {
             submissionDTO.setUpdateSubmission(true);   
         }
         
-        // if we have a repository copy, and there is only one repository listed on the submission (would be the nihms repo)
-        // but the submission is not marked as submitted, set it as submitted and use file deposit date as submitted date
-        // When a submission is set to submitted by this transform process, it becomes Source.OTHER regardless of where it started
+        // if there is only one repository listed on the submission (would be the nihms repo) and we have either a repoCopy, or NIHMS
+        // is telling us the publication is compliant... but the submission is not marked as submitted, set it as submitted and 
+        // use file deposit date as submitted date.  When a submission is set to submitted by this transform process, it becomes 
+        // Source.OTHER regardless of where it started
         if (submission.getRepositories().size()==1
-                && hasRepoCopy 
+                && (hasRepoCopy || nihmsStatus.equals(NihmsStatus.COMPLIANT))
                 && !submission.getSubmitted()) {
             submission.setSubmitted(true);
             submission.setSource(Source.OTHER);
