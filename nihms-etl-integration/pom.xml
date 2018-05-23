@@ -65,7 +65,7 @@
           <images>
             <image>
               <alias>fcrepo</alias>
-              <name>oapass/fcrepo:4.7.5-2.0-SNAPSHOT-5</name>
+              <name>oapass/fcrepo:4.7.5-2.0-SNAPSHOT-6</name>
               <run>
                 <hostname>fcrepo</hostname>
                 <namingStrategy>alias</namingStrategy>
