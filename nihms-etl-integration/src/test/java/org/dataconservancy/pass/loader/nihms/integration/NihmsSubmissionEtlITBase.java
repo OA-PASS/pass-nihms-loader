@@ -63,7 +63,7 @@ public abstract class NihmsSubmissionEtlITBase {
     //use when need to return reliable record information instead of using entrez api
     @Mock
     protected PmidLookup mockPmidLookup;
-    
+        
     protected Map<URI, Class<? extends PassEntity>> createdUris = new HashMap<URI, Class<? extends PassEntity>>();
     
     protected static final int RETRIES = 12;
@@ -100,10 +100,10 @@ public abstract class NihmsSubmissionEtlITBase {
         NihmsPassClientService nihmsClient = new NihmsPassClientService();
         nihmsClient.clearCache();
         
+        //clean out all data from the following (note Grant URIs added to createdUris the createGrant() method as we don't want to delete pre-loaded data)
         putAllInCreatedUris(client.findAllByAttribute(Submission.class, "@type", "Submission"), Submission.class);
         putAllInCreatedUris(client.findAllByAttribute(Publication.class, "@type", "Publication"), Publication.class);
         putAllInCreatedUris(client.findAllByAttribute(RepositoryCopy.class, "@type", "RepositoryCopy"), RepositoryCopy.class);
-        putAllInCreatedUris(client.findAllByAttribute(Grant.class, "@type", "Grant"), Grant.class);
         putAllInCreatedUris(client.findAllByAttribute(Deposit.class, "@type", "Deposit"), Deposit.class);
                 
         //need to log fail if this doesn't work as it could mess up re-testing if data isn't cleaned out
@@ -153,6 +153,7 @@ public abstract class NihmsSubmissionEtlITBase {
         grant.setStartDate(new DateTime());
         grant.setAwardDate(new DateTime());
         URI uri = client.createResource(grant);
+        createdUris.put(uri, Grant.class);
         return uri;
     }
     
