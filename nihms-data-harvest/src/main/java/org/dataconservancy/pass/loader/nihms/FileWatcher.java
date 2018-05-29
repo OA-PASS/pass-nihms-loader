@@ -32,7 +32,7 @@ public class FileWatcher {
     /**
      * time to wait for file to appear
      */
-    private static final Integer TIMEOUT = 60;
+    private static final Integer TIMEOUT = 90;
     
     
     /**
@@ -60,12 +60,15 @@ public class FileWatcher {
                                             f2.lastModified()));
                 Thread.sleep(1000);         
                 if(mostRecentFile.isPresent()) {
-                    return mostRecentFile.get();
-                } else {
-                    currentTime = (System.currentTimeMillis()-startTime)/1000;
+                    //a file has appeared, but make sure it is finished downloading by checking for .part file
+                    String partFile = mostRecentFile.get().getAbsolutePath() + ".part";
+                    if (!(new File(partFile).exists())) {
+                        return mostRecentFile.get();
+                    } 
                 }
-            
+                currentTime = (System.currentTimeMillis()-startTime)/1000;
             } while (currentTime<=TIMEOUT);
+            
         } catch (InterruptedException ie) {
             throw new RuntimeException("Process was interrupted while waiting for file to download", ie);            
         } catch (Exception ex) {
