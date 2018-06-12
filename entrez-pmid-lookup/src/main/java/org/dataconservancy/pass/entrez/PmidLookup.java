@@ -16,20 +16,21 @@
 package org.dataconservancy.pass.entrez;
 
 import java.io.IOException;
-import java.io.InputStream;
 
 import java.net.URI;
 import java.net.URISyntaxException;
 
+import java.nio.charset.StandardCharsets;
+
 import java.util.concurrent.TimeUnit;
 
-import org.apache.commons.io.IOUtils;
-
+import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.DefaultHttpRequestRetryHandler;
 import org.apache.http.impl.client.HttpClientBuilder;
+import org.apache.http.util.EntityUtils;
 
 import org.json.JSONObject;
 import org.slf4j.Logger;
@@ -92,15 +93,15 @@ public class PmidLookup {
             throw new IllegalArgumentException("pmid cannot be null");
         }
         JSONObject jsonRecord = null;
+        
         try {
             jsonRecord = retrieveJsonFromApi(pmid);
-            if (jsonRecord == null) {
+            if (jsonRecord==null) {
                 // pause and retry once to allow for API limitations
                 LOG.info("Pausing before trying to pull PMID {} from Entrez again", pmid);
                 TimeUnit.MILLISECONDS.sleep(400);
                 jsonRecord = retrieveJsonFromApi(pmid);
             }
-            
         } catch (InterruptedException e) {
             throw new RuntimeException("A problem occurred while waiting to retry Entrez API call", e);
         }
@@ -116,7 +117,6 @@ public class PmidLookup {
     private JSONObject retrieveJsonFromApi(String pmid) {
         JSONObject root = null;
         String path = String.format(entrezPath, pmid);
-        InputStream is = null;
         try {
             HttpClient client = HttpClientBuilder
                     .create()
@@ -124,14 +124,21 @@ public class PmidLookup {
                     .build();
             HttpGet httpget = new HttpGet(new URI(path));
             HttpResponse response = client.execute(httpget);
-            is = response.getEntity().getContent();
-            root = walkToJsonRoot(is, pmid);
-    
-            if (root.has(JSON_ERROR_KEY)) {
-                //if there is an error key, something went wrong. Log error and return null.
-                String error = root.getString(JSON_ERROR_KEY);
-                LOG.warn("Could not retrieve PMID {} from Entrez. Error: {}", pmid, error);
-                root = null;
+            HttpEntity entity = response.getEntity();
+            
+            if (entity!=null) {
+                String result = EntityUtils.toString(entity, StandardCharsets.UTF_8);
+                root = walkToJsonRoot(result, pmid);
+                
+                if (root.has(JSON_ERROR_KEY)) {
+                    //if there is an error key, something went wrong. Log error and return null.
+                    String error = root.getString(JSON_ERROR_KEY);
+                    LOG.warn("Could not retrieve PMID {} from Entrez. Error: {}", pmid, error);
+                    root = null;
+                }
+            } else {
+                LOG.warn("Could not retrieve PMID {} from Entrez. Returned empty value.", pmid);
+                root = null;                
             }
             
         } catch (URISyntaxException e) {
@@ -139,12 +146,6 @@ public class PmidLookup {
         } catch (IllegalStateException | IOException e) {
             LOG.warn("Could not retrieve PMID {} from Entrez. Error: {}", pmid, e);
             throw new RuntimeException("Error while retrieving content from Entrez at URL: " + path, e);
-        } finally {
-            try {
-                is.close();
-            } catch (IOException e) {
-                //do nothing
-            }
         }
         
         return root;
@@ -154,13 +155,12 @@ public class PmidLookup {
     /**
      * Converts to JSONObject then walks to the root of the JSON content. This could be a PMID record
      * or an error message
-     * @param inputstream
+     * @param jsonEntrezRecord as string
      * @param pmid
      * @return
      * @throws IOException
      */
-    private JSONObject walkToJsonRoot(InputStream inputstream, String pmid) throws IOException {
-        String jsonEntrezRecord =IOUtils.toString(inputstream);
+    private JSONObject walkToJsonRoot(String jsonEntrezRecord, String pmid) throws IOException {
         JSONObject root = new JSONObject(jsonEntrezRecord);
         
         if (root.has(JSON_RESULT_KEY)){
