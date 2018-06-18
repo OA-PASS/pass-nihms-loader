@@ -73,6 +73,10 @@ public class NihmsHarvester {
     private static final String GUI_PASSWORD_FIELD_NAME = "PASSWORD";
     private static final String GUI_LOGIN_BUTTON_ID = "Image2";
     private static final String GUI_DOWNLOAD_LINKTEXT = "Download as CSV file";
+    private static final String GUI_NONCOMPLIANT_URL = "https://www.ncbi.nlm.nih.gov/pmc/utils/pacm/n?";
+    private static final String GUI_COMPLIANT_URL = "https://www.ncbi.nlm.nih.gov/pmc/utils/pacm/c?";
+    private static final String GUI_INPROGRESS_URL = "https://www.ncbi.nlm.nih.gov/pmc/utils/pacm/p?";
+    
     private static final String GUI_NONCOMPLIANT_LINK_XPATH = "//a[starts-with(@href, 'https://www.ncbi.nlm.nih.gov/pmc/utils/pacm/n?')]";
     private static final String GUI_COMPLIANT_LINK_XPATH = "//a[starts-with(@href, 'https://www.ncbi.nlm.nih.gov/pmc/utils/pacm/c?')]";
     private static final String GUI_INPROCESS_LINK_XPATH = "//a[starts-with(@href, 'https://www.ncbi.nlm.nih.gov/pmc/utils/pacm/p?')]";
@@ -193,8 +197,8 @@ public class NihmsHarvester {
             
             if (statusesToDownload.contains(NihmsStatus.COMPLIANT)) {
                 driver.findElement(By.xpath(GUI_COMPLIANT_LINK_XPATH)).click();     
-                LOG.info("Goto compliant list");
-                Thread.sleep(2000);     
+                LOG.info("Goto compliant list");             
+                waitForPageToLoad(GUI_COMPLIANT_URL, driver);  
                 driver.findElement(By.linkText(GUI_DOWNLOAD_LINKTEXT)).click(); 
                 String newfile = pollAndRename(COMPLIANT_FILE_PREFIX, NihmsStatus.COMPLIANT);    
                 LOG.info("Downloaded and saved compliant publications as file " + newfile);     
@@ -204,7 +208,7 @@ public class NihmsHarvester {
             if (statusesToDownload.contains(NihmsStatus.NON_COMPLIANT)) {
                 driver.findElement(By.xpath(GUI_NONCOMPLIANT_LINK_XPATH)).click();     
                 LOG.info("Goto non-compliant list");
-                Thread.sleep(2000);     
+                waitForPageToLoad(GUI_NONCOMPLIANT_URL, driver);   
                 driver.findElement(By.linkText(GUI_DOWNLOAD_LINKTEXT)).click(); 
                 String newfile = pollAndRename(NONCOMPLIANT_FILE_PREFIX, NihmsStatus.NON_COMPLIANT);
                 LOG.info("Downloaded and saved non-compliant publications as file " + newfile);       
@@ -214,7 +218,7 @@ public class NihmsHarvester {
             if (statusesToDownload.contains(NihmsStatus.IN_PROCESS)) {
                 driver.findElement(By.xpath(GUI_INPROCESS_LINK_XPATH)).click();     
                 LOG.info("Goto in-process list");
-                Thread.sleep(2000);     
+                waitForPageToLoad(GUI_INPROGRESS_URL, driver);  
                 driver.findElement(By.linkText(GUI_DOWNLOAD_LINKTEXT)).click();  
                 String newfile = pollAndRename(INPROCESS_FILE_PREFIX, NihmsStatus.IN_PROCESS);
                 LOG.info("Downloaded and saved in-process publications as file " + newfile);  
@@ -251,6 +255,30 @@ public class NihmsHarvester {
         return (nullOrEmpty(startDate) || startDate.matches("^(0?[1-9]|1[012])-(\\d{4})$"));
     }
     
+    /**
+     * Waits for page to load, checks URL matches expected URL. Throws error if times out
+     * @param loadingUrl
+     * @param driver
+     * @throws InterruptedException
+     */
+    private void waitForPageToLoad(String loadingUrl, WebDriver driver) throws InterruptedException {
+        long start_time = System.currentTimeMillis();
+        long wait_time = 60000;
+        long end_time = start_time + wait_time;
+
+        while (!driver.getCurrentUrl().startsWith(loadingUrl) &&
+                System.currentTimeMillis() < end_time) {
+            LOG.info("Waiting for page to load...");
+            Thread.sleep(3000);     
+        }
+        
+        if (!driver.getCurrentUrl().startsWith(loadingUrl)) {
+            throw new RuntimeException("Page load timed out after one minute. Try again later.");
+        }
+        
+    }
+    
+    
     private String pollAndRename(String prefix, NihmsStatus status) throws InterruptedException {
         File newfile = FileWatcher.getNewFile(downloadDirectoryPath, prefix, ".csv");
         LOG.info("New file downloaded: " + newfile.getAbsolutePath());
@@ -266,6 +294,4 @@ public class NihmsHarvester {
         return newFilePath;
     }
 
-    
-    
 }
