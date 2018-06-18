@@ -4,7 +4,7 @@
 
   <groupId>org.dataconservancy.pass</groupId>
   <artifactId>pass-nihms-submission-etl</artifactId>
-  <version>1.2.2-SNAPSHOT</version>
+  <version>1.2.2</version>
   <packaging>pom</packaging>
 
   <name>PASS NIHMS Submission Extract-Transform-Load</name>
