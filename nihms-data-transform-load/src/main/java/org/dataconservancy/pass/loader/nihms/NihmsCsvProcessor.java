@@ -160,7 +160,7 @@ public class NihmsCsvProcessor {
         }
         catch (Exception ex) {
             failCount = failCount + 1;
-            LOG.error("A problem occurred while processing csv row {} with pmid {}. The record was not imported successfully.", recCount, pub.getPmid(), ex);
+            LOG.error("A problem occurred while processing csv row {} with pmid {}. The record was not imported successfully.", recCount+1, pub.getPmid(), ex);
         }
     }
     
