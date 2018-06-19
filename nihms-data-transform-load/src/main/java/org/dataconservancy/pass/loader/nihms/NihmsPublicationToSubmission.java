@@ -260,12 +260,13 @@ public class NihmsPublicationToSubmission {
             }
             repoCopy.setExternalIds(externalIds);
             
-            //check if copystatus changed
+            //check if copystatus changed, but do not change from completed to something else, this indicates a data issue.
             CopyStatus copyStatus = repoCopy.getCopyStatus();
             CopyStatus newCopyStatus = calcRepoCopyStatus(pub, copyStatus);
-            if (!copyStatus.equals(newCopyStatus)) {
+            
+            if (copyStatus==null || !copyStatus.equals(newCopyStatus)) {
                 repoCopy.setCopyStatus(newCopyStatus);
-                submissionDTO.setUpdateRepositoryCopy(true);        
+                submissionDTO.setUpdateRepositoryCopy(true);   
             }
         }
         return repoCopy;
@@ -420,6 +421,13 @@ public class NihmsPublicationToSubmission {
         if (pub.getNihmsStatus().equals(NihmsStatus.COMPLIANT)) {
             return CopyStatus.COMPLETE;
         }
+        //do not let the status go back from COMPLETE - once it is COMPLETE any attempt to change status back is probably bad data
+        if (currCopyStatus!=null && currCopyStatus.equals(CopyStatus.COMPLETE)) {
+            LOG.warn("A NIHMS record for a publication with PMID {} is attempting to change the status of a COMPLETED Repository Copy. "
+                    + "This may be due to two PMIDs being assigned to a single DOI, so the data should be checked. The status will not "
+                    + "be changed.", pub.getPmid());
+            return CopyStatus.COMPLETE;
+        }
         
         CopyStatus newStatus = null;
         
@@ -435,7 +443,6 @@ public class NihmsPublicationToSubmission {
         // NIHMS but log a warning
         if (currCopyStatus!=null) {
              if (newStatus==null
-                 || currCopyStatus.equals(CopyStatus.COMPLETE)
                  || (currCopyStatus.equals(CopyStatus.IN_PROGRESS) && newStatus.equals(CopyStatus.ACCEPTED))) {
                 LOG.warn("The status of the RepositoryCopy in PASS was at a later stage than the current NIHMS status would imply. "
                             + "Rolled back from \"{}\" to \"{}\" for pmid {}", currCopyStatus.toString(), (newStatus==null ? "(null)" : newStatus.toString()), pub.getPmid());

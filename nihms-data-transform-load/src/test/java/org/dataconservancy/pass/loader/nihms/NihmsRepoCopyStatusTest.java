@@ -80,10 +80,10 @@ public class NihmsRepoCopyStatusTest {
         CopyStatus status = NihmsPublicationToSubmission.calcRepoCopyStatus(pub, null);
         assertEquals(CopyStatus.ACCEPTED, status);
         
-        //status has gone out of alignment with PASS - PASS status is saying complete. This should roll back 
-        //the status to accepted and log a warning.
+        //status has gone out of alignment with PASS - PASS status is saying complete. This should not roll back
+        //the status to accepted and it should log a warning that something is attempting to take status out of complete.
         status = NihmsPublicationToSubmission.calcRepoCopyStatus(pub, CopyStatus.COMPLETE);
-        assertEquals(CopyStatus.ACCEPTED, status);      
+        assertEquals(CopyStatus.COMPLETE, status);      
         
         //it was accepted, and is still accepted
         status = NihmsPublicationToSubmission.calcRepoCopyStatus(pub, CopyStatus.ACCEPTED);
@@ -104,9 +104,9 @@ public class NihmsRepoCopyStatusTest {
         CopyStatus status = NihmsPublicationToSubmission.calcRepoCopyStatus(pub, null);
         assertEquals(CopyStatus.STALLED, status);   
         
-        //should be stalled even if was previously complete
+        //if previous status was complete, should be complete regardless
         status = NihmsPublicationToSubmission.calcRepoCopyStatus(pub, CopyStatus.COMPLETE);
-        assertEquals(CopyStatus.STALLED, status);  
+        assertEquals(CopyStatus.COMPLETE, status);  
     }
 
     
@@ -129,7 +129,7 @@ public class NihmsRepoCopyStatusTest {
         //status has gone out of alignment with PASS - PASS is ahead sometime. This should roll back 
         //the status to received and log a warning.
         status = NihmsPublicationToSubmission.calcRepoCopyStatus(pub, CopyStatus.COMPLETE);
-        assertEquals(CopyStatus.IN_PROGRESS, status);
+        assertEquals(CopyStatus.COMPLETE, status);
         
         //this time, the submission has been tagged since it was accepted.
         pub = newTestPub();
