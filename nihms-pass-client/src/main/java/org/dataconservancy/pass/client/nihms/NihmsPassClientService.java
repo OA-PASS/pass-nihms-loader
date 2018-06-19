@@ -143,6 +143,12 @@ public class NihmsPassClientService {
         if (!awardNumber.equals(modAwardNum)) {
             grantIds.addAll(client.findAllByAttribute(Grant.class, AWARD_NUMBER_FLD, modAwardNum));
         }
+
+        //if there is a "-##" at the end of the award number, remove it and search again
+        if (modAwardNum.contains("-") && modAwardNum.indexOf("-") > 9) {
+            modAwardNum = modAwardNum.substring(0, modAwardNum.indexOf("-"));
+            grantIds.addAll(client.findAllByAttribute(Grant.class, AWARD_NUMBER_FLD, modAwardNum));            
+        }        
         
         List<Grant> grants = new ArrayList<Grant>();
         for (URI id : grantIds) {
