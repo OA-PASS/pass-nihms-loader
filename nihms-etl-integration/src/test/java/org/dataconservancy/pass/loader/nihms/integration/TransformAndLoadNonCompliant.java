@@ -196,7 +196,7 @@ public class TransformAndLoadNonCompliant extends NihmsSubmissionEtlITBase {
         
         //check repository copy link added, but status did not change... status managed by deposit service
         Deposit deposit = client.readResource(preexistingDepositUri, Deposit.class);
-        assertEquals(preexistingDeposit.getDepositStatus(), deposit.getDepositStatus());
+        assertEquals(DepositStatus.ACCEPTED, deposit.getDepositStatus());
         assertEquals(repocopyUri, deposit.getRepositoryCopy());
                 
     }

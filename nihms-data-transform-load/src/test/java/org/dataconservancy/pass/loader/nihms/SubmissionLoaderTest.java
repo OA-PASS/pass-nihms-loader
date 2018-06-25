@@ -267,7 +267,7 @@ public class SubmissionLoaderTest {
         
         Deposit deposit = new Deposit();
         deposit.setId(new URI(sDepositUri));
-        deposit.setDepositStatus(DepositStatus.ACCEPTED);
+        deposit.setDepositStatus(DepositStatus.SUBMITTED);
         deposit.setRepository(repositoryCopy.getRepository());
         
         SubmissionDTO dto = new SubmissionDTO();
@@ -295,6 +295,7 @@ public class SubmissionLoaderTest {
         ArgumentCaptor<Deposit> depositCaptor = ArgumentCaptor.forClass(Deposit.class);
         verify(clientServiceMock).updateDeposit(depositCaptor.capture()); 
         deposit.setRepositoryCopy(repositoryCopyUri);
+        deposit.setDepositStatus(DepositStatus.ACCEPTED);
         assertEquals(deposit, depositCaptor.getValue());
         
     }

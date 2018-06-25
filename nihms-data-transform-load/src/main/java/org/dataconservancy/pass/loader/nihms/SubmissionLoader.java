@@ -19,6 +19,7 @@ import java.net.URI;
 
 import org.dataconservancy.pass.client.nihms.NihmsPassClientService;
 import org.dataconservancy.pass.model.Deposit;
+import org.dataconservancy.pass.model.Deposit.DepositStatus;
 import org.dataconservancy.pass.model.Publication;
 import org.dataconservancy.pass.model.RepositoryCopy;
 import org.dataconservancy.pass.model.Submission;
@@ -26,7 +27,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- *
+ * Creates / updates the Submission, RepositoryCopy, Publication, and Deposit in the database as needed 
  * @author Karen Hanson
  */
 public class SubmissionLoader {
@@ -98,6 +99,7 @@ public class SubmissionLoader {
             Deposit deposit = clientService.findNihmsDepositForSubmission(submission.getId());
             if (deposit!=null && deposit.getRepositoryCopy()==null) {
                 deposit.setRepositoryCopy(repositoryCopyUri);
+                deposit.setDepositStatus(DepositStatus.ACCEPTED);
                 clientService.updateDeposit(deposit);
             } else if (deposit!=null && !deposit.getRepositoryCopy().equals(repositoryCopyUri)) {
                 //this shouldn't happen in principle, but if it does it should be checked.
