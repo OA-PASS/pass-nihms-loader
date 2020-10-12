@@ -94,7 +94,7 @@
     <maven-release-plugin.version>2.5.3</maven-release-plugin.version>
   
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <junit.version>4.12</junit.version>
+    <junit.version>4.13.1</junit.version>
     <http-client.version>4.5.2</http-client.version>
     <org-json.version>20180130</org-json.version>
     <commons-csv.version>1.5</commons-csv.version>
