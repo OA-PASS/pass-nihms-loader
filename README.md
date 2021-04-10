@@ -124,7 +124,8 @@ nihmsetl.pmcurl.template=https://www.ncbi.nlm.nih.gov/pmc/articles/%s/
 pass.fedora.baseurl=http://localhost:8080/fcrepo/rest/
 pass.fedora.user=admin
 pass.fedora.password=password
-pass.elasticsearch.url=http://localhost:9200/pass/
+pass.elasticsearch.url=http://localhost:9200/ (default value)
+pass.elasticsearcg.indices=pass (default value)
 pass.elasticsearch.limit=200
 ```
 
@@ -135,7 +136,8 @@ pass.elasticsearch.limit=200
 * `pass.fedora.baseurl` - Base URL for Fedora
 * `pass.fedora.user` - User name for Fedora access
 * `pass.fedora.password` - Password for Fedora access
-* `pass.elasticsearch.url` - Base URL for elasticsearch 
+* `pass.elasticsearch.url` - Base URL for elasticsearch host
+* `pass.elasticsearch.indices` - Index target for elasticsearch
 * `pass.elasticsearch.limit` - Maximum number of results to return in an Elasticsearch query. This is optional, it defaults to 200 and typically will not need to be overridden.
 
 ### Running the Data Transform-Load
