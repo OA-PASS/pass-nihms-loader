@@ -4,10 +4,10 @@
   <parent>
     <groupId>org.dataconservancy.pass</groupId>
     <artifactId>pass-nihms-submission-etl</artifactId>
-    <version>1.4.1-SNAPSHOT</version>
+    <version>1.4.1</version>
   </parent>
   <artifactId>nihms-etl-integration</artifactId>
-  <version>1.4.1-SNAPSHOT</version>
+  <version>1.4.1</version>
   <name>NIHMS ELT Integration Tests</name>
 
   <profiles>
