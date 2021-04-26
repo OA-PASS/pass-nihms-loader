@@ -105,7 +105,7 @@
     <args4j.version>2.33</args4j.version>
     <mockito.version>1.9.5</mockito.version>
     <handy-uri-templates.version>2.1.8</handy-uri-templates.version>
-    <commons-io.version>2.6</commons-io.version>
+    <commons-io.version>2.7</commons-io.version>
     <okhttp.version>3.14.1</okhttp.version>
   </properties>
   
