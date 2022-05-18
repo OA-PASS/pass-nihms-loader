@@ -16,12 +16,12 @@
 package org.dataconservancy.pass.client.nihms.cache;
 
 import java.net.URI;
-
 import java.util.HashMap;
 
 /**
  * Caches submission and depositId combination for easy lookup
  * Note: cache only contains deposits for nihms
+ *
  * @author Karen Hanson
  */
 public class NihmsDepositIdCache {
@@ -34,23 +34,25 @@ public class NihmsDepositIdCache {
     }
 
     public static synchronized NihmsDepositIdCache getInstance() {
-      if (depositSpace == null) {
-          depositSpace = new NihmsDepositIdCache();
-      }
-      return depositSpace;
+        if (depositSpace == null) {
+            depositSpace = new NihmsDepositIdCache();
+        }
+        return depositSpace;
     }
-    
+
     /**
      * Add deposit to map
+     *
      * @param submissionId the submission id
-     * @param depositId the deposit id
+     * @param depositId    the deposit id
      */
     public synchronized void put(URI submissionId, URI depositId) {
         depositCache.put(submissionId, depositId);
     }
-    
+
     /**
      * Retrieve depositId by submissionId
+     *
      * @param submissionId the submission id
      * @return the URI from the deposit cache
      */
@@ -60,6 +62,7 @@ public class NihmsDepositIdCache {
 
     /**
      * Remove a Deposit from cache
+     *
      * @param submissionId the submission id
      */
     public synchronized void remove(URI submissionId) {
@@ -68,6 +71,7 @@ public class NihmsDepositIdCache {
 
     /**
      * Get number of cached deposits
+     *
      * @return the number of cached deposits
      */
     public synchronized int size() {
@@ -80,5 +84,5 @@ public class NihmsDepositIdCache {
     public synchronized void clear() {
         depositCache.clear();
     }
-    
+
 }

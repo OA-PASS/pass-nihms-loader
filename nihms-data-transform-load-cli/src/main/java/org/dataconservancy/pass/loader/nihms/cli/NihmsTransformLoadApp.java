@@ -16,9 +16,7 @@
 package org.dataconservancy.pass.loader.nihms.cli;
 
 import java.io.File;
-
 import java.nio.file.Files;
-
 import java.util.Properties;
 import java.util.Set;
 
@@ -31,6 +29,7 @@ import org.slf4j.LoggerFactory;
 
 /**
  * Coordinates loading of csv files and passing into load and transform routine
+ *
  * @author Karen Hanson
  */
 public class NihmsTransformLoadApp {
@@ -39,29 +38,30 @@ public class NihmsTransformLoadApp {
 
     private static final String NIHMS_CONFIG_FILEPATH_PROPKEY = "nihmsetl.loader.configfile";
     private static final String DEFAULT_CONFIG_FILENAME = "nihms-loader.properties";
-    
+
     /**
      * These are the only system properties that can be loaded in from the properties file.
      * Existing values will not be overwritten, these will just be added if missing.
      */
-    private static final String[] SYSTEM_PROPERTIES = {"pass.fedora.user", "pass.fedora.password", 
+    private static final String[] SYSTEM_PROPERTIES = {"pass.fedora.user", "pass.fedora.password",
                                                        "pass.fedora.baseurl", "pass.elasticsearch.url",
                                                        "pass.elasticsearch.limit", "nihmsetl.data.dir",
-                                                       "nihmsetl.repository.uri", "nihmsetl.pmcurl.template", 
+                                                       "nihmsetl.repository.uri", "nihmsetl.pmcurl.template",
                                                        "nihmsetl.loader.cachepath"};
-        
+
     private Set<NihmsStatus> statusesToProcess;
 
     public NihmsTransformLoadApp(Set<NihmsStatus> statusesToProcess) {
         this.statusesToProcess = statusesToProcess;
-    }    
-    
+    }
+
     /**
      * Run the transform and load process
      */
     public void run() {
 
-        //properties and downloads folders will default to current folder and default name provided if properties not configured
+        //properties and downloads folders will default to current folder and default name provided if properties not
+        // configured
         File configFile = FileUtil.getConfigFilePath(NIHMS_CONFIG_FILEPATH_PROPKEY, DEFAULT_CONFIG_FILENAME);
 
         if (Files.exists(configFile.toPath()) && configFile.canRead()) {
@@ -76,33 +76,33 @@ public class NihmsTransformLoadApp {
                 }
             }
         } else {
-            LOG.warn("Could not find a readable config file at path {}, will use current system and environment variables for configuration. "
-                    + "To use a config file, create a file named \"{}\" in the app's folder or provide a valid path "
-                    + "using the \"nihms.config.filepath\" environment variable.", configFile.getAbsolutePath(), DEFAULT_CONFIG_FILENAME);
+            LOG.warn(
+                "Could not find a readable config file at path {}, will use current system and environment variables " +
+                "for configuration. "
+                + "To use a config file, create a file named \"{}\" in the app's folder or provide a valid path "
+                + "using the \"nihms.config.filepath\" environment variable.", configFile.getAbsolutePath(),
+                DEFAULT_CONFIG_FILENAME);
         }
 
         if (LOG.isDebugEnabled()) {
             StringBuilder props = new StringBuilder("\n"
-                        + "--------------------------------------------------------------\n"
-                        + "*                         PROPERTIES                         *\n"
-                        + "--------------------------------------------------------------\n");
-            
+                                                    + "--------------------------------------------------------------\n"
+                                                    + "*                         PROPERTIES                         *\n"
+                                                    +
+                                                    "--------------------------------------------------------------\n");
+
             props.append(NIHMS_CONFIG_FILEPATH_PROPKEY + ": " + configFile.toString());
-            
+
             for (String key : SYSTEM_PROPERTIES) {
                 props.append(key + ": " + ConfigUtil.getSystemProperty(key, "{uses_default}"));
             }
             props.append("--------------------------------------------------------------\n");
             LOG.debug(props.toString());
         }
-        
+
         NihmsTransformLoadService service = new NihmsTransformLoadService();
         service.transformAndLoadFiles(statusesToProcess);
-        
+
     }
-        
-    
-    
-    
-    
+
 }

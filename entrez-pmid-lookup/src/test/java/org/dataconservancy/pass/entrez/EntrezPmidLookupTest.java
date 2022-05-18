@@ -15,46 +15,44 @@
  */
 package org.dataconservancy.pass.entrez;
 
-import org.junit.Test;
-
-import org.json.JSONObject;
-
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import org.json.JSONObject;
+import org.junit.Test;
+
 /**
- *
  * @author Karen Hanson
  * @version $Id$
  */
 public class EntrezPmidLookupTest {
 
     @Test
-    public void testGetEntrezRecordJson() { 
+    public void testGetEntrezRecordJson() {
         PmidLookup apiService = new PmidLookup();
-        
+
         String pmid = "29249144";
-        
+
         JSONObject pmr = apiService.retrievePubMedRecordAsJson(pmid);
         assertTrue(pmr.getString("source").contains("Proteome"));
-        
+
     }
-    
+
     @Test
     public void testGetPubMedRecord() {
         PmidLookup pmidLookup = new PmidLookup();
         String pmid = "29249144";
-        PubMedEntrezRecord record = pmidLookup.retrievePubMedRecord(pmid);        
-        assertEquals("10.1021/acs.jproteome.7b00775", record.getDoi());        
+        PubMedEntrezRecord record = pmidLookup.retrievePubMedRecord(pmid);
+        assertEquals("10.1021/acs.jproteome.7b00775", record.getDoi());
     }
-    
+
     @Test
     public void testGetPubMedRecordWithHighAsciiChars() {
         PmidLookup pmidLookup = new PmidLookup();
         String pmid = "27648456";
-        PubMedEntrezRecord record = pmidLookup.retrievePubMedRecord(pmid);        
-        assertEquals("10.1002/acn3.333", record.getDoi());      
+        PubMedEntrezRecord record = pmidLookup.retrievePubMedRecord(pmid);
+        assertEquals("10.1002/acn3.333", record.getDoi());
         assertEquals("Age-dependent effects of APOE ε4 in preclinical Alzheimer's disease.", record.getTitle());
     }
-    
+
 }

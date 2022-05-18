@@ -15,43 +15,41 @@
  */
 package org.dataconservancy.pass.loader.nihms;
 
-import java.io.File;
-
-import java.util.ArrayList;
-import java.util.List;
-
-import org.apache.commons.io.FileUtils;
-
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-
-import org.dataconservancy.pass.loader.nihms.util.FileUtil;
-
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
+
+import org.apache.commons.io.FileUtils;
+import org.dataconservancy.pass.loader.nihms.util.FileUtil;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+
 /**
  * Tests CompletedPublicationsCache class
+ *
  * @author Karen Hanson
  */
 public class CompletedPublicationsCacheTest {
 
     private static CompletedPublicationsCache completedPubsCache;
     private String cachepath;
-    
+
     @Before
     public void startup() {
-        cachepath = FileUtil.getCurrentDirectory() +"/cache/compliant-cache.data";
+        cachepath = FileUtil.getCurrentDirectory() + "/cache/compliant-cache.data";
         System.setProperty("nihmsetl.loader.cachepath", cachepath);
         completedPubsCache = CompletedPublicationsCache.getInstance();
     }
-    
+
     @After
     public void cleanup() {
         completedPubsCache.clear();
-    }    
+    }
 
     /**
      * Makes sure cache contains items after you add them
@@ -62,16 +60,16 @@ public class CompletedPublicationsCacheTest {
         String pmid2 = "987654";
         String awardNum1 = "AB1 EI12345";
         String awardNum2 = "AB2 MF21355";
-        
+
         assertFalse(completedPubsCache.contains(pmid1, awardNum1));
         assertFalse(completedPubsCache.contains(pmid2, awardNum2));
-        
+
         completedPubsCache.add(pmid1, awardNum1);
         completedPubsCache.add(pmid2, awardNum2);
-        
+
         assertTrue(completedPubsCache.contains(pmid1, awardNum1));
         assertTrue(completedPubsCache.contains(pmid2, awardNum2));
-       
+
     }
 
     /**
@@ -83,27 +81,27 @@ public class CompletedPublicationsCacheTest {
         String pmid2 = "987654";
         String awardNum1 = "AB1 EI12345";
         String awardNum2 = "AB2 MF21355";
-        
+
         assertFalse(completedPubsCache.contains(pmid1, awardNum1));
         assertFalse(completedPubsCache.contains(pmid2, awardNum2));
-        
+
         completedPubsCache.add(pmid1, awardNum1);
         completedPubsCache.add(pmid2, awardNum2);
-        
+
         assertTrue(completedPubsCache.contains(pmid1, awardNum1));
         assertTrue(completedPubsCache.contains(pmid2, awardNum2));
-       
+
         completedPubsCache.clear();
 
         assertFalse(completedPubsCache.contains(pmid1, awardNum1));
         assertFalse(completedPubsCache.contains(pmid2, awardNum2));
-        
-        
+
     }
 
     /**
      * Makes sure adding duplicate data does not add rows to the cache file
-     * @throws Exception 
+     *
+     * @throws Exception
      */
     @Test
     public void testDoesNotAddDuplicates() throws Exception {
@@ -111,17 +109,17 @@ public class CompletedPublicationsCacheTest {
         String pmid2 = "987654";
         String awardNum1 = "AB1 EI12345";
         String awardNum2 = "AB2 MF21355";
-        
+
         assertFalse(completedPubsCache.contains(pmid1, awardNum1));
         assertFalse(completedPubsCache.contains(pmid2, awardNum2));
-        
+
         completedPubsCache.add(pmid1, awardNum1);
         completedPubsCache.add(pmid2, awardNum2);
         completedPubsCache.add(pmid1, awardNum1);
         completedPubsCache.add(pmid2, awardNum2);
         completedPubsCache.add(pmid1, awardNum1);
         completedPubsCache.add(pmid2, awardNum2);
-        
+
         assertTrue(completedPubsCache.contains(pmid1, awardNum1));
         assertTrue(completedPubsCache.contains(pmid2, awardNum2));
 
@@ -129,7 +127,5 @@ public class CompletedPublicationsCacheTest {
         List<String> processed = new ArrayList<String>(FileUtils.readLines(new File(cachepath)));
         assertEquals(2, processed.size());
     }
-    
-    
-    
+
 }

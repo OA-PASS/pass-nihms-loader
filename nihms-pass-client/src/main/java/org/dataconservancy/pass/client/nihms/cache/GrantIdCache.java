@@ -16,11 +16,11 @@
 package org.dataconservancy.pass.client.nihms.cache;
 
 import java.net.URI;
-
 import java.util.HashMap;
 
 /**
  * Caches awardNumber and grantId combination for easy lookup
+ *
  * @author Karen Hanson
  */
 public class GrantIdCache {
@@ -33,24 +33,26 @@ public class GrantIdCache {
     }
 
     public static synchronized GrantIdCache getInstance() {
-      if (grantSpace == null) {
-          grantSpace = new GrantIdCache();
-      }
-      return grantSpace;
+        if (grantSpace == null) {
+            grantSpace = new GrantIdCache();
+        }
+        return grantSpace;
     }
-    
+
     /**
      * Add awardNumber/grantId combination to map
+     *
      * @param awardNumber the award number
-     * @param grantId the grant id
+     * @param grantId     the grant id
      */
     public synchronized void put(String awardNumber, URI grantId) {
         awardNumber = awardNumber.toLowerCase();
         grantCache.put(awardNumber, grantId);
     }
-    
+
     /**
      * Retrieve grantId by awardNumber
+     *
      * @param awardNumber the award number
      * @return the grant id
      */
@@ -61,6 +63,7 @@ public class GrantIdCache {
 
     /**
      * Remove a Grant from cache
+     *
      * @param awardNumber the award number
      */
     public synchronized void remove(String awardNumber) {
@@ -70,6 +73,7 @@ public class GrantIdCache {
 
     /**
      * Get number of cached grants
+     *
      * @return number of cached grants
      */
     public synchronized int size() {
@@ -82,5 +86,5 @@ public class GrantIdCache {
     public synchronized void clear() {
         grantCache.clear();
     }
-    
+
 }

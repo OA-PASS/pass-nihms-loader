@@ -28,17 +28,17 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Creates / updates the Submission, RepositoryCopy, Publication, and Deposit in the database as needed 
+ * Creates / updates the Submission, RepositoryCopy, Publication, and Deposit in the database as needed
+ *
  * @author Karen Hanson
  */
 public class SubmissionLoader {
 
     private static final Logger LOG = LoggerFactory.getLogger(SubmissionLoader.class);
-    
+
     private NihmsPassClientService clientService;
-    
+
     private SubmissionStatusService statusService;
-        
 
     /**
      * Initiates with default client service
@@ -47,9 +47,10 @@ public class SubmissionLoader {
         this.clientService = new NihmsPassClientService();
         this.statusService = new SubmissionStatusService();
     }
-    
+
     /**
      * Supports initiation with specific client service
+     *
      * @param clientService PASS client service
      * @param statusService Submission status service
      */
@@ -57,23 +58,23 @@ public class SubmissionLoader {
         this.clientService = clientService;
         this.statusService = statusService;
     }
-    
- 
+
     /**
      * Load the data in the NihmsSubmissionDTO to the database. Deal with any conflicts that occur during the updates
      * by implementing retries, failing gracefully etc.
+     *
      * @param dto the DTO
      */
     public void load(SubmissionDTO dto) {
-        if (dto==null || dto.getSubmission()==null) {
+        if (dto == null || dto.getSubmission() == null) {
             throw new RuntimeException("A null Submission object was passed to the loader.");
         }
-        
+
         LOG.info("Loading information for Submission with PMID {}", dto.getPublication().getPmid());
-                       
+
         Publication publication = dto.getPublication();
         URI publicationUri = publication.getId();
-        if (publicationUri==null) {
+        if (publicationUri == null) {
             publicationUri = clientService.createPublication(publication);
             publication.setId(publicationUri);
         } else if (dto.doUpdatePublication()) {
@@ -82,7 +83,7 @@ public class SubmissionLoader {
 
         Submission submission = dto.getSubmission();
         URI submissionUri = submission.getId();
-        if (submissionUri==null) {
+        if (submissionUri == null) {
             submission.setPublication(publicationUri);
             submissionUri = clientService.createSubmission(submission);
             submission.setId(submissionUri);
@@ -91,35 +92,38 @@ public class SubmissionLoader {
         }
 
         RepositoryCopy repositoryCopy = dto.getRepositoryCopy();
-        if (repositoryCopy!=null) {
+        if (repositoryCopy != null) {
             URI repositoryCopyUri = repositoryCopy.getId();
-            if (repositoryCopyUri==null) {
+            if (repositoryCopyUri == null) {
                 repositoryCopy.setPublication(publicationUri);
                 repositoryCopyUri = clientService.createRepositoryCopy(repositoryCopy);
                 repositoryCopy.setId(repositoryCopyUri);
-            } else if (dto.doUpdateRepositoryCopy()){
+            } else if (dto.doUpdateRepositoryCopy()) {
                 clientService.updateRepositoryCopy(repositoryCopy);
             }
-            
+
             // If repository copy is changing, check Deposit to make sure the RepositoryCopyId is present
             Deposit deposit = clientService.findNihmsDepositForSubmission(submission.getId());
-            if (deposit!=null && deposit.getRepositoryCopy()==null) {
+            if (deposit != null && deposit.getRepositoryCopy() == null) {
                 deposit.setRepositoryCopy(repositoryCopyUri);
                 deposit.setDepositStatus(DepositStatus.ACCEPTED);
                 clientService.updateDeposit(deposit);
-            } else if (deposit!=null && !deposit.getRepositoryCopy().equals(repositoryCopyUri)) {
+            } else if (deposit != null && !deposit.getRepositoryCopy().equals(repositoryCopyUri)) {
                 //this shouldn't happen in principle, but if it does it should be checked.
-                LOG.warn("A NIHMS Deposit with id {} was found for the Submission but it is associated with a different RepositoryCopy ({}) from the one processed ({}). "
-                        + "This may indicate a data error, please verify the RepositoryCopy association for this Deposit", deposit.getId(), deposit.getRepositoryCopy(), repositoryCopyUri);
+                LOG.warn(
+                    "A NIHMS Deposit with id {} was found for the Submission but it is associated with a different " +
+                    "RepositoryCopy ({}) from the one processed ({}). "
+                    + "This may indicate a data error, please verify the RepositoryCopy association for this Deposit",
+                    deposit.getId(), deposit.getRepositoryCopy(), repositoryCopyUri);
             }
-            
+
         }
-        
+
         //before moving on do one last check to see if SubmissionStatus has been affected by the changes
         //if so, update status.
         if (dto.doUpdate()) {
             statusService.calculateAndUpdateSubmissionStatus(submissionUri);
         }
-    }    
-    
+    }
+
 }

@@ -15,31 +15,6 @@
  */
 package org.dataconservancy.pass.client.nihms;
 
-import java.net.URI;
-
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExpectedException;
-
-import org.dataconservancy.pass.client.PassClient;
-import org.dataconservancy.pass.model.Deposit;
-import org.dataconservancy.pass.model.Grant;
-import org.dataconservancy.pass.model.Publication;
-import org.dataconservancy.pass.model.RepositoryCopy;
-import org.dataconservancy.pass.model.Submission;
-import org.joda.time.DateTime;
-import org.mockito.ArgumentCaptor;
-import org.mockito.Mock;
-import org.mockito.Mockito;
-import org.mockito.MockitoAnnotations;
-
 import static org.dataconservancy.pass.client.nihms.NihmsPassClientService.ERR_CREATE_PUBLICATION;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
@@ -52,14 +27,38 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
+import java.net.URI;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import org.dataconservancy.pass.client.PassClient;
+import org.dataconservancy.pass.model.Deposit;
+import org.dataconservancy.pass.model.Grant;
+import org.dataconservancy.pass.model.Publication;
+import org.dataconservancy.pass.model.RepositoryCopy;
+import org.dataconservancy.pass.model.Submission;
+import org.joda.time.DateTime;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.ExpectedException;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Mock;
+import org.mockito.Mockito;
+import org.mockito.MockitoAnnotations;
+
 /**
- * Tests many of the public methods in NihmsPassClientService. Does not currently test 
+ * Tests many of the public methods in NihmsPassClientService. Does not currently test
  * methods that consist of only a null check and then a call to the fedora client
+ *
  * @author Karen Hanson
  */
 @SuppressWarnings({"unchecked", "rawtypes"})
 public class NihmsPassClientServiceTest {
-    
+
     private static final String sGrant1Id = "https://example.com/fedora/grants/1";
     private static final String sGrant2Id = "https://example.com/fedora/grants/2";
     private static final String sSubmissionId = "https://example.com/fedora/submissions/1";
@@ -75,12 +74,12 @@ public class NihmsPassClientServiceTest {
 
     @Rule
     public ExpectedException expectedEx = ExpectedException.none();
-    
+
     @Mock
     private PassClient mockClient;
-        
+
     private NihmsPassClientService clientService;
-    
+
     private URI grantId;
     private URI grant2Id;
     private URI userId;
@@ -89,9 +88,9 @@ public class NihmsPassClientServiceTest {
     private URI repositoryId;
     private URI publicationId;
     private URI repositoryCopyId;
-    
-    @Before 
-    public void initMocks() throws Exception{
+
+    @Before
+    public void initMocks() throws Exception {
         MockitoAnnotations.initMocks(this);
         clientService = new NihmsPassClientService(mockClient);
         grantId = new URI(sGrant1Id);
@@ -103,35 +102,34 @@ public class NihmsPassClientServiceTest {
         publicationId = new URI(sPublicationId);
         repositoryCopyId = new URI(sRepositoryCopyId);
     }
-    
+
     @After
     public void clearCache() {
         clientService.clearCache();
     }
-    
-    
+
     /**
      * Checks that it findGrantByAwardNumber searches the database with and without space
      * returns null when non found
      */
     @Test
     public void testFindGrantByAwardNumberNoMatch() {
-        
+
         ArgumentCaptor<String> awardNumCaptor = ArgumentCaptor.forClass(String.class);
-        
-        when(mockClient.findAllByAttribute(eq(Grant.class), eq("awardNumber"), eq(awardNumber))).thenReturn(new HashSet<URI>());
+
+        when(mockClient.findAllByAttribute(eq(Grant.class), eq("awardNumber"), eq(awardNumber))).thenReturn(
+            new HashSet<URI>());
 
         Grant grant = clientService.findMostRecentGrantByAwardNumber(awardNumber);
-        
-        verify(mockClient, times(2)).findAllByAttribute(eq(Grant.class), eq("awardNumber"), awardNumCaptor.capture()); 
-        
+
+        verify(mockClient, times(2)).findAllByAttribute(eq(Grant.class), eq("awardNumber"), awardNumCaptor.capture());
+
         assertEquals(awardNumber, awardNumCaptor.getAllValues().get(0));
         assertEquals(awardNumber.replace(" ", ""), awardNumCaptor.getAllValues().get(1));
         assertEquals(null, grant);
-        
+
     }
-    
-    
+
     /**
      * Checks that findGrantByAwardNumber returns URI when one found
      */
@@ -141,7 +139,7 @@ public class NihmsPassClientServiceTest {
         grant1.setId(grantId);
         grant1.setAwardNumber(awardNumber);
         grant1.setStartDate(new DateTime().minusYears(1));
-        
+
         Grant grant2 = new Grant();
         grant2.setId(grant2Id);
         grant2.setAwardNumber(awardNumber);
@@ -150,18 +148,17 @@ public class NihmsPassClientServiceTest {
         Set<URI> grantIds = new HashSet<URI>();
         grantIds.add(grantId);
         grantIds.add(grant2Id);
-        
+
         when(mockClient.findAllByAttribute(eq(Grant.class), eq("awardNumber"), eq(awardNumber))).thenReturn(grantIds);
         when(mockClient.readResource(eq(grantId), eq(Grant.class))).thenReturn(grant1);
         when(mockClient.readResource(eq(grant2Id), eq(Grant.class))).thenReturn(grant2);
 
         Grant matchedGrant = clientService.findMostRecentGrantByAwardNumber(awardNumber);
-        verify(mockClient).findAllByAttribute(eq(Grant.class), eq("awardNumber"), eq(awardNumber)); 
-        
-        assertEquals(grant2, matchedGrant);        
+        verify(mockClient).findAllByAttribute(eq(Grant.class), eq("awardNumber"), eq(awardNumber));
+
+        assertEquals(grant2, matchedGrant);
     }
 
-    
     /**
      * Checks that findPublicationById returns match based on PMID
      */
@@ -172,16 +169,15 @@ public class NihmsPassClientServiceTest {
         publication.setDoi(doi);
         publication.setTitle(title);
         publication.setPmid(pmid);
-        
+
         when(mockClient.findByAttribute(eq(Publication.class), eq("pmid"), eq(pmid))).thenReturn(publicationId);
         when(mockClient.readResource(eq(publicationId), eq(Publication.class))).thenReturn(publication);
-        
+
         Publication matchedPublication = clientService.findPublicationByPmid(pmid);
-        
-        assertEquals(publication, matchedPublication);         
+
+        assertEquals(publication, matchedPublication);
     }
 
-    
     /**
      * Checks that it findPublicationById returns match based on DOI
      */
@@ -192,35 +188,33 @@ public class NihmsPassClientServiceTest {
         publication.setDoi(doi);
         publication.setTitle(title);
         publication.setPmid(pmid);
-        
+
         when(mockClient.findByAttribute(Publication.class, "pmid", pmid)).thenReturn(null);
         when(mockClient.findByAttribute(Publication.class, "doi", doi)).thenReturn(publicationId);
         when(mockClient.readResource(publicationId, Publication.class)).thenReturn(publication);
-        
+
         Publication matchedPublication = clientService.findPublicationByDoi(doi, pmid);
-        
+
         verify(mockClient).findByAttribute(eq(Publication.class), any(), any());
-        assertEquals(publication, matchedPublication);         
+        assertEquals(publication, matchedPublication);
     }
 
-    
     /**
      * Checks that it findPublicationById returns null when no match
      */
     @Test
     public void testFindPublicationByIdNoMatch() throws Exception {
-       
+
         when(mockClient.findByAttribute(Publication.class, "pmid", pmid)).thenReturn(null);
         when(mockClient.findByAttribute(Publication.class, "doi", doi)).thenReturn(null);
-        
-        Publication matchedPublication = clientService.findPublicationByPmid(pmid);
-        
-        verify(mockClient).findByAttribute(eq(Publication.class), Mockito.anyString(), any());
-        assertNull(matchedPublication);         
-                
-    }  
 
-    
+        Publication matchedPublication = clientService.findPublicationByPmid(pmid);
+
+        verify(mockClient).findByAttribute(eq(Publication.class), Mockito.anyString(), any());
+        assertNull(matchedPublication);
+
+    }
+
     /**
      * Checks that it findRepositoryCopyByRepoAndPubId returns match based on repository and publication
      */
@@ -229,45 +223,44 @@ public class NihmsPassClientServiceTest {
         RepositoryCopy repoCopy = new RepositoryCopy();
         repoCopy.setId(repositoryCopyId);
         repoCopy.setPublication(publicationId);
-        
+
         Set<URI> repositoryCopyIds = new HashSet<URI>();
         repositoryCopyIds.add(repositoryCopyId);
-        
+
         when(mockClient.findAllByAttributes(eq(RepositoryCopy.class), any())).thenReturn(repositoryCopyIds);
         when(mockClient.readResource(eq(repositoryCopyId), eq(RepositoryCopy.class))).thenReturn(repoCopy);
-        
+
         RepositoryCopy matchedRepoCopy = clientService.findNihmsRepositoryCopyForPubId(publicationId);
-        assertEquals(repoCopy, matchedRepoCopy);       
-        
+        assertEquals(repoCopy, matchedRepoCopy);
+
         //check it doesnt pull from elasticsearch the second time
-        matchedRepoCopy = clientService.findNihmsRepositoryCopyForPubId(publicationId);    
-        verify(mockClient, times(1)).findAllByAttributes(eq(RepositoryCopy.class), any());     
-        assertEquals(repoCopy, matchedRepoCopy);       
+        matchedRepoCopy = clientService.findNihmsRepositoryCopyForPubId(publicationId);
+        verify(mockClient, times(1)).findAllByAttributes(eq(RepositoryCopy.class), any());
+        assertEquals(repoCopy, matchedRepoCopy);
     }
 
-    
     /**
      * Checks that it findRepositoryCopyByRepoAndPubId returns null when no match
      */
     @Test
     public void testFindRepositoryCopyByRepoAndPubIdNoMatch() throws Exception {
         when(mockClient.findAllByAttributes(eq(RepositoryCopy.class), any())).thenReturn(null);
-        
+
         RepositoryCopy matchedRepoCopy = clientService.findNihmsRepositoryCopyForPubId(publicationId);
-        
-        assertNull(matchedRepoCopy);       
+
+        assertNull(matchedRepoCopy);
     }
-        
-    
+
     /**
-     * Tests the scenario where a match is found right away using publication+grant 
+     * Tests the scenario where a match is found right away using publication+grant
+     *
      * @throws Exception
      */
     @Test
     public void testFindExistingSubmissionPubGrantHasMatch() throws Exception {
-        
+
         URI submissionId2 = new URI(sSubmissionId + "2");
-        
+
         Set<URI> submissions = new HashSet<URI>();
         submissions.add(submissionId);
         submissions.add(submissionId2);
@@ -277,64 +270,66 @@ public class NihmsPassClientServiceTest {
 
         Submission submission2 = new Submission();
         submission.setId(submissionId2);
-        
+
         Grant grant = new Grant();
         grant.setId(grantId);
         grant.setPi(userId);
 
         when(mockClient.findAllByAttributes(eq(Submission.class), any())).thenReturn(submissions);
         when(mockClient.readResource(any(), eq(Submission.class))).thenReturn(submission).thenReturn(submission2);
-        
-        List<Submission> matchedSubmissions = clientService.findSubmissionsByPublicationAndUserId(publicationId, userId);
-        
+
+        List<Submission> matchedSubmissions = clientService.findSubmissionsByPublicationAndUserId(publicationId,
+                                                                                                  userId);
+
         ArgumentCaptor<Map> argumentCaptor = ArgumentCaptor.forClass(Map.class);
-        
+
         verify(mockClient).findAllByAttributes(eq(Submission.class), argumentCaptor.capture());
-        
+
         assertEquals(2, argumentCaptor.getValue().size());
         assertEquals(userId, argumentCaptor.getValue().get("submitter"));
         assertEquals(publicationId, argumentCaptor.getValue().get("publication"));
-        
+
         assertEquals(submission, matchedSubmissions.get(0));
         assertEquals(submission2, matchedSubmissions.get(1));
-        
+
     }
-    
 
     /**
-     * Tests the scenario where no match is found using publication+grant 
+     * Tests the scenario where no match is found using publication+grant
+     *
      * @throws Exception
      */
     @Test
     public void testFindExistingSubmissionPubGrantNoMatch() throws Exception {
         //returns null first time, then the submission the second time when search using doi
-        
+
         when(mockClient.findAllByAttributes(eq(Submission.class), any())).thenReturn(new HashSet<URI>());
-        
-        List<Submission> matchedSubmissions = clientService.findSubmissionsByPublicationAndUserId(publicationId, userId);
-        
+
+        List<Submission> matchedSubmissions = clientService.findSubmissionsByPublicationAndUserId(publicationId,
+                                                                                                  userId);
+
         ArgumentCaptor<Map> argumentCaptor = ArgumentCaptor.forClass(Map.class);
-        
+
         verify(mockClient).findAllByAttributes(eq(Submission.class), argumentCaptor.capture());
-        
+
         assertEquals(2, argumentCaptor.getValue().size());
         assertEquals(userId, argumentCaptor.getValue().get("submitter"));
         assertEquals(publicationId, argumentCaptor.getValue().get("publication"));
-        
-        assertTrue(matchedSubmissions.size()==0);
-        
+
+        assertTrue(matchedSubmissions.size() == 0);
+
     }
-    
-    
+
     /**
      * Test that given a submission containing some Deposit URIs, they are all retrieved and returned as a list
+     *
      * @throws Exception
      */
     @Test
     public void testFindDepositBySubmissionAndRepositoryIdHasMatch() throws Exception {
         Set<URI> depositIds = new HashSet<URI>();
         depositIds.add(depositId);
-        
+
         Deposit deposit = new Deposit();
         deposit.setId(depositId);
         deposit.setSubmission(submissionId);
@@ -342,21 +337,22 @@ public class NihmsPassClientServiceTest {
 
         when(mockClient.findAllByAttributes(eq(Deposit.class), any())).thenReturn(depositIds);
         when(mockClient.readResource(eq(depositId), eq(Deposit.class))).thenReturn(deposit);
-        
+
         Deposit matchedDeposit = clientService.findNihmsDepositForSubmission(submissionId);
-        
+
         verify(mockClient).findAllByAttributes(eq(Deposit.class), any());
         verify(mockClient).readResource(any(), eq(Deposit.class));
-        
+
         assertEquals(deposit, matchedDeposit);
     }
-    
+
     /**
      * Checks that exception thrown if too many deposit URIs are returned when finding Deposits related to a Submission
      * and Repository combination
+     *
      * @throws Exception
      */
-    @Test(expected=RuntimeException.class)
+    @Test(expected = RuntimeException.class)
     public void testFindDepositBySubmissionAndRepositoryIdExtraMatch() throws Exception {
         URI depositId2 = new URI(sDepositId + "2");
         Set<URI> depositIds = new HashSet<URI>();
@@ -364,12 +360,11 @@ public class NihmsPassClientServiceTest {
         depositIds.add(depositId2);
 
         when(mockClient.findAllByAttributes(eq(Deposit.class), any())).thenReturn(depositIds);
-        
+
         clientService.findNihmsDepositForSubmission(submissionId);
-        
+
     }
-    
-        
+
     /**
      * Checks that createSubmission works as expected
      */
@@ -378,17 +373,16 @@ public class NihmsPassClientServiceTest {
         Submission submission = new Submission();
         submission.setSubmitter(userId);
         submission.setPublication(publicationId);
-        
+
         when(mockClient.createResource(eq(submission))).thenReturn(submissionId);
-        
+
         URI newSubmissionId = clientService.createSubmission(submission);
-        
+
         verify(mockClient).createResource(eq(submission));
-        
+
         assertEquals(submissionId, newSubmissionId);
     }
-    
-    
+
     /**
      * Checks that if there are changes an update happens in updateSubmission
      */
@@ -406,13 +400,12 @@ public class NihmsPassClientServiceTest {
         submissionEdited.setSubmitter(userId);
         submissionEdited.setPublication(publicationId);
         submissionEdited.setSubmitted(true);
-        
+
         when(mockClient.readResource(eq(submissionId), eq(Submission.class))).thenReturn(submission);
         clientService.updateSubmission(submissionEdited);
         verify(mockClient).updateResource(eq(submissionEdited));
-        
+
     }
-    
 
     /**
      * Checks that if there are no changes an update does not happen in updateSubmission

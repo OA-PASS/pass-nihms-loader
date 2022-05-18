@@ -15,22 +15,22 @@
  */
 package org.dataconservancy.pass.loader.nihms.model;
 
-
 /**
  * Possible statuses for NIHMS publication records downloaded in spreadsheets
+ *
  * @author Karen Hanson
  */
 public enum NihmsStatus {
     COMPLIANT("compliant"),
     NON_COMPLIANT("noncompliant"),
     IN_PROCESS("inprocess");
-    
-    
+
     private String value;
-    private NihmsStatus(String value){
+
+    private NihmsStatus(String value) {
         this.value = value;
     }
-    
+
     @Override
     public String toString() {
         return this.value;

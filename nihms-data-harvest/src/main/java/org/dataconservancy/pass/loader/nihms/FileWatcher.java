@@ -16,63 +16,66 @@
 package org.dataconservancy.pass.loader.nihms;
 
 import java.io.File;
-
 import java.nio.file.Path;
-
 import java.util.Arrays;
 import java.util.Optional;
 
 /**
- * Utility to poll a directory to check a file is downloaded. Once the file appears it 
- * sends the new filepath back 
+ * Utility to poll a directory to check a file is downloaded. Once the file appears it
+ * sends the new filepath back
+ *
  * @author Karen Hanson
  */
 public class FileWatcher {
+
+    private FileWatcher () {
+        //never called
+    }
 
     /**
      * time to wait for file to appear
      */
     private static final Integer TIMEOUT = 90;
-    
-    
+
     /**
      * Polls a directory until it finds a file matching the criteria, passes back the file name.
-     * @param directory directory to poll
-     * @param matchPrefix the filename prefix
+     *
+     * @param directory          directory to poll
+     * @param matchPrefix        the filename prefix
      * @param matchFileExtension the filename extension
      * @return the matching file
      */
-    public static File getNewFile(Path directory, String matchPrefix, String matchFileExtension) {  
+    public static File getNewFile(Path directory, String matchPrefix, String matchFileExtension) {
 
-        try { 
+        try {
             long startTime = System.currentTimeMillis();
-            long currentTime = (System.currentTimeMillis()-startTime)/1000;
-            
+            long currentTime = (System.currentTimeMillis() - startTime) / 1000;
+
             do {
                 Optional<File> mostRecentFile = Arrays
-                                    .stream(directory.toFile().listFiles())
-                                    .filter(f -> (
-                                            f.isFile() 
-                                            && f.getName().startsWith(matchPrefix) 
-                                            && f.getName().endsWith(matchFileExtension)))
-                                    .max(
-                                        (f1, f2) -> Long.compare(f1.lastModified(),
-                                            f2.lastModified()));
-                Thread.sleep(1000);         
-                if(mostRecentFile.isPresent()) {
+                    .stream(directory.toFile().listFiles())
+                    .filter(f -> (
+                        f.isFile()
+                        && f.getName().startsWith(matchPrefix)
+                        && f.getName().endsWith(matchFileExtension)))
+                    .max(
+                        (f1, f2) -> Long.compare(f1.lastModified(),
+                                                 f2.lastModified()));
+                Thread.sleep(1000);
+                if (mostRecentFile.isPresent()) {
                     //a file has appeared, but make sure it is finished downloading by checking for .part file
                     String partFile = mostRecentFile.get().getAbsolutePath() + ".part";
                     if (!(new File(partFile).exists())) {
                         return mostRecentFile.get();
-                    } 
+                    }
                 }
-                currentTime = (System.currentTimeMillis()-startTime)/1000;
-            } while (currentTime<=TIMEOUT);
-            
+                currentTime = (System.currentTimeMillis() - startTime) / 1000;
+            } while (currentTime <= TIMEOUT);
+
         } catch (InterruptedException ie) {
-            throw new RuntimeException("Process was interrupted while waiting for file to download", ie);            
+            throw new RuntimeException("Process was interrupted while waiting for file to download", ie);
         } catch (Exception ex) {
-            throw new RuntimeException("A problem occurred while waiting for file to download", ex);            
+            throw new RuntimeException("A problem occurred while waiting for file to download", ex);
         }
         //if didn't return a value by now, something went wrong.
         throw new RuntimeException("Download operation timed out. Expected file was not downloaded");

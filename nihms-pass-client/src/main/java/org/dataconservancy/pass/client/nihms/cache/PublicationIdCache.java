@@ -16,11 +16,11 @@
 package org.dataconservancy.pass.client.nihms.cache;
 
 import java.net.URI;
-
 import java.util.HashMap;
 
 /**
  * Caches pmid and publicationId combination for easy lookup
+ *
  * @author Karen Hanson
  */
 public class PublicationIdCache {
@@ -33,23 +33,25 @@ public class PublicationIdCache {
     }
 
     public static synchronized PublicationIdCache getInstance() {
-      if (publicationSpace == null) {
-          publicationSpace = new PublicationIdCache();
-      }
-      return publicationSpace;
+        if (publicationSpace == null) {
+            publicationSpace = new PublicationIdCache();
+        }
+        return publicationSpace;
     }
-    
+
     /**
      * Add publication to map
-     * @param pmid the pmid
+     *
+     * @param pmid          the pmid
      * @param publicationId the publication id
      */
     public synchronized void put(String pmid, URI publicationId) {
         publicationCache.put(pmid, publicationId);
     }
-    
+
     /**
      * Retrieve publicationId by pmid
+     *
      * @param pmid the pmid
      * @return the publication uri
      */
@@ -59,6 +61,7 @@ public class PublicationIdCache {
 
     /**
      * Remove a Publication from cache
+     *
      * @param pmid the pmid
      */
     public synchronized void remove(String pmid) {
@@ -67,6 +70,7 @@ public class PublicationIdCache {
 
     /**
      * Get number of cached publications
+     *
      * @return the size of the cache
      */
     public synchronized int size() {
@@ -79,5 +83,5 @@ public class PublicationIdCache {
     public synchronized void clear() {
         publicationCache.clear();
     }
-    
+
 }

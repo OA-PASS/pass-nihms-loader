@@ -16,7 +16,6 @@
 package org.dataconservancy.pass.client.nihms.cache;
 
 import java.net.URI;
-
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
@@ -24,6 +23,7 @@ import java.util.Set;
 /**
  * Caches userIdPubId as concatenated string with the list of submissions relevant to that combination to ensure
  * all relevant submissions are retrieved regardless of whether index is up to date with most recent etl records
+ *
  * @author Karen Hanson
  */
 public class UserPubSubmissionsCache {
@@ -36,38 +36,40 @@ public class UserPubSubmissionsCache {
     }
 
     public static synchronized UserPubSubmissionsCache getInstance() {
-      if (userPubSubmissionCache == null) {
-          userPubSubmissionCache = new UserPubSubmissionsCache();
-      }
-      return userPubSubmissionCache;
+        if (userPubSubmissionCache == null) {
+            userPubSubmissionCache = new UserPubSubmissionsCache();
+        }
+        return userPubSubmissionCache;
     }
-    
+
     /**
      * Add an item to an existing Map Entry or create a new one if one does not already exist
-     * @param userIdPubId the concatenated user id and publication id
+     *
+     * @param userIdPubId  the concatenated user id and publication id
      * @param submissionId the submission id
      */
     public synchronized void addToOrCreateEntry(String userIdPubId, URI submissionId) {
         Set<URI> submissionIds = userPubSubmissionsCache.get(userIdPubId);
-        if (submissionIds==null) {
+        if (submissionIds == null) {
             submissionIds = new HashSet<URI>();
-        } 
+        }
         submissionIds.add(submissionId);
         userPubSubmissionsCache.put(userIdPubId, submissionIds);
     }
-    
-    
+
     /**
      * Add userIdPubId/submissionIds combination to map
-     * @param userIdPubId the concatenated user id and publication id
+     *
+     * @param userIdPubId   the concatenated user id and publication id
      * @param submissionIds the submission ids
      */
     public synchronized void put(String userIdPubId, Set<URI> submissionIds) {
         userPubSubmissionsCache.put(userIdPubId, submissionIds);
     }
-    
+
     /**
      * Retrieve submissionIds by userIdPubId
+     *
      * @param userIdPubId the concatenated user id and publication id
      * @return submission ids
      */
@@ -77,6 +79,7 @@ public class UserPubSubmissionsCache {
 
     /**
      * Remove a Submission from cache
+     *
      * @param userIdPubId the concatenated user id and publication id
      */
     public synchronized void remove(String userIdPubId) {
@@ -85,6 +88,7 @@ public class UserPubSubmissionsCache {
 
     /**
      * Get number of cached submissions
+     *
      * @return the size of the cache
      */
     public synchronized int size() {
@@ -97,5 +101,5 @@ public class UserPubSubmissionsCache {
     public synchronized void clear() {
         userPubSubmissionsCache.clear();
     }
-    
+
 }

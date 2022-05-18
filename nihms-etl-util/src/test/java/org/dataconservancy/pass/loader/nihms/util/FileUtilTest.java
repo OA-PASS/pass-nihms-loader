@@ -15,12 +15,14 @@
  */
 package org.dataconservancy.pass.loader.nihms.util;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
 import java.io.File;
 import java.io.IOException;
-
 import java.nio.file.FileSystems;
 import java.nio.file.Path;
-
 import java.util.List;
 
 import org.junit.After;
@@ -29,39 +31,31 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-
 /**
- *
  * @author Karen Hanson
  */
 public class FileUtilTest {
 
     @Rule
-    public TemporaryFolder folder= new TemporaryFolder();
-    
+    public TemporaryFolder folder = new TemporaryFolder();
+
     private File createdFolder;
     private String testFilePath;
-    
+
     private static final String DATA_DIR_KEY = "nihmsetl.data.dir";
     private static final String NIHMS_CONFIG_FILEPATH_KEY = "nihmsetl.harvester.configfile";
-    
-    
-    
+
     @Before
     public void createFolder() throws Exception {
-        createdFolder= folder.getRoot();
-        testFilePath= createdFolder.getAbsolutePath() + "test.properties";
+        createdFolder = folder.getRoot();
+        testFilePath = createdFolder.getAbsolutePath() + "test.properties";
     }
-    
-    
+
     @After
-    public void clearProps() throws IOException {    
+    public void clearProps() throws IOException {
         System.clearProperty("filter");
         System.clearProperty(NIHMS_CONFIG_FILEPATH_KEY);
-        System.clearProperty(DATA_DIR_KEY);       
+        System.clearProperty(DATA_DIR_KEY);
         if (createdFolder.exists()) {
             folder.delete();
         }
@@ -70,17 +64,19 @@ public class FileUtilTest {
 
     /**
      * Confirms config directory works if path is a system property
+     *
      * @throws IOException
      */
     @Test
     public void testSelectConfigDirectoryFromSystemProperty() throws IOException {
         System.setProperty(NIHMS_CONFIG_FILEPATH_KEY, testFilePath);
         File file = FileUtil.getConfigFilePath(NIHMS_CONFIG_FILEPATH_KEY, "nihmsetl.config");
-        assertEquals(testFilePath, file.toString());        
+        assertEquals(testFilePath, file.toString());
     }
-    
+
     /**
      * Confirms config directory works if use default
+     *
      * @throws IOException
      */
     @Test
@@ -91,17 +87,19 @@ public class FileUtilTest {
 
     /**
      * Confirms select directory picks correctly from props list
+     *
      * @throws IOException
      */
     @Test
     public void testSelectDirectoryFromProperties() throws IOException {
         System.setProperty(DATA_DIR_KEY, createdFolder.getAbsolutePath());
         File file = FileUtil.getDataDirectory();
-        assertEquals(createdFolder.getAbsolutePath(), file.toString()); 
+        assertEquals(createdFolder.getAbsolutePath(), file.toString());
     }
 
     /**
      * Confirms that getFilePaths will retrieve 3 csv files in target directory
+     *
      * @throws IOException
      */
     @Test
@@ -114,9 +112,10 @@ public class FileUtilTest {
         assertTrue(paths.contains(file2.toPath()));
         assertTrue(paths.contains(file3.toPath()));
     }
-    
+
     /**
      * Verifies that getFilePaths ignores .docx, and .done, and gathers only .csv
+     *
      * @throws IOException
      */
     @Test
@@ -131,11 +130,10 @@ public class FileUtilTest {
         assertEquals(2, paths.size());
         paths = null;
     }
-    
 
-    
     /**
      * Verifies that getFilePaths ignores .docx, and .done, and gathers only .csv
+     *
      * @throws IOException
      */
     @Test
@@ -149,12 +147,12 @@ public class FileUtilTest {
         List<Path> paths = FileUtil.getCsvFilePaths(createdFolder.toPath());
         assertTrue(paths.contains(file1.toPath()));
         assertTrue(paths.contains(file2.toPath()));
-        assertEquals(2, paths.size());        
+        assertEquals(2, paths.size());
     }
-    
-    
+
     /**
      * Confirms that if you rename a file to append ".done", the new file exists, while the old is gone.
+     *
      * @throws IOException
      */
     @Test
@@ -166,8 +164,7 @@ public class FileUtilTest {
         Path path = FileSystems.getDefault().getPath(newFileName);
         assertTrue(path.toFile().exists());
         assertFalse(file1.exists());
-        
+
     }
-    
-    
+
 }

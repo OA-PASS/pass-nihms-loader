@@ -18,11 +18,12 @@
 
 package org.dataconservancy.pass.loader.nihms;
 
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import static java.lang.String.format;
+import static java.lang.String.join;
+import static org.dataconservancy.pass.loader.nihms.NihmsHarvesterConfig.API_URL_PARAM_PREFIX;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import java.net.URISyntaxException;
 import java.net.URL;
@@ -32,10 +33,11 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static java.lang.String.format;
-import static java.lang.String.join;
-import static org.dataconservancy.pass.loader.nihms.NihmsHarvesterConfig.API_URL_PARAM_PREFIX;
-import static org.junit.Assert.*;
+import org.junit.After;
+import org.junit.AfterClass;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
 public class UrlBuilderTest {
 
@@ -79,11 +81,11 @@ public class UrlBuilderTest {
     @AfterClass
     public static void cleanUpSystemProps() {
         System.getProperties()
-                .entrySet()
-                .stream()
-                .filter((entry) -> ((String)entry.getKey()).startsWith(API_URL_PARAM_PREFIX))
-                .collect(Collectors.toSet())
-                .forEach(entry -> System.clearProperty((String)entry.getKey()));
+              .entrySet()
+              .stream()
+              .filter((entry) -> ((String) entry.getKey()).startsWith(API_URL_PARAM_PREFIX))
+              .collect(Collectors.toSet())
+              .forEach(entry -> System.clearProperty((String) entry.getKey()));
     }
 
     @Before
@@ -111,8 +113,9 @@ public class UrlBuilderTest {
         String query = generatedUrl.toURI().getQuery(); // .toURI() will decode the query parameter values
         assertNotNull(query);
         String[] parts = query.split("&");
-        assertEquals(format("Unexpected number of URL parameters.  Wanted %s, got %s", additional.size() + 7, parts.length),
-                additional.size() + 7, parts.length);
+        assertEquals(
+            format("Unexpected number of URL parameters.  Wanted %s, got %s", additional.size() + 7, parts.length),
+            additional.size() + 7, parts.length);
 
         Stream.of(parts).forEach(part -> {
             String[] subpart = part.split("=");

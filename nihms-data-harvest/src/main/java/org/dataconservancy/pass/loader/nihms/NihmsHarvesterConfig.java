@@ -15,16 +15,21 @@
  */
 package org.dataconservancy.pass.loader.nihms;
 
-import org.dataconservancy.pass.loader.nihms.util.ConfigUtil;
-
 import java.util.HashMap;
 import java.util.Map;
 
+import org.dataconservancy.pass.loader.nihms.util.ConfigUtil;
+
 /**
  * Holds information and methods required to configure the NIHMS harvester tool.
+ *
  * @author Karen Hanson
  */
 public class NihmsHarvesterConfig {
+
+    private NihmsHarvesterConfig () {
+        //never called
+    }
 
     public static final String NIHMS_ETL_PROPERTY_PREFIX = "nihmsetl.";
 
@@ -64,12 +69,14 @@ public class NihmsHarvesterConfig {
 
     public static Map<String, String> getApiUrlParams() {
         return System.getProperties()
-                .entrySet()
-                .stream()
-                .filter((entry) -> ((String)entry.getKey()).startsWith(API_URL_PARAM_PREFIX))
-                .collect(HashMap::new,
-                        (map, entry) -> map.put(((String)entry.getKey()).substring(API_URL_PARAM_PREFIX.length()), (String)entry.getValue()),
-                        (map1, map2) -> map2.putAll(map1));
+                     .entrySet()
+                     .stream()
+                     .filter((entry) -> ((String) entry.getKey()).startsWith(API_URL_PARAM_PREFIX))
+                     .collect(HashMap::new,
+                              (map, entry) -> map.put(
+                                  ((String) entry.getKey()).substring(API_URL_PARAM_PREFIX.length()),
+                                  (String) entry.getValue()),
+                              (map1, map2) -> map2.putAll(map1));
     }
 
     public static long getHttpConnectTimeoutMs() {

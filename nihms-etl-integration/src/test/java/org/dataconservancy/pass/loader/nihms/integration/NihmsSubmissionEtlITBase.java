@@ -15,10 +15,13 @@
  */
 package org.dataconservancy.pass.loader.nihms.integration;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
+import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.when;
+
 import java.io.IOException;
-
 import java.net.URI;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -27,10 +30,6 @@ import java.util.Set;
 import java.util.concurrent.Callable;
 
 import org.apache.commons.io.IOUtils;
-
-import org.junit.After;
-import org.junit.Before;
-
 import org.dataconservancy.pass.client.PassClient;
 import org.dataconservancy.pass.client.PassClientFactory;
 import org.dataconservancy.pass.client.SubmissionStatusService;
@@ -48,15 +47,11 @@ import org.dataconservancy.pass.model.RepositoryCopy;
 import org.dataconservancy.pass.model.Submission;
 import org.joda.time.DateTime;
 import org.json.JSONObject;
+import org.junit.After;
+import org.junit.Before;
 import org.mockito.Mock;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
-import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.when;
-
 /**
- *
  * @author Karen Hanson
  */
 public abstract class NihmsSubmissionEtlITBase {
@@ -64,19 +59,19 @@ public abstract class NihmsSubmissionEtlITBase {
     //use when need to return reliable record information instead of using entrez api
     @Mock
     protected PmidLookup mockPmidLookup;
-        
+
     protected Map<URI, Class<? extends PassEntity>> createdUris = new HashMap<URI, Class<? extends PassEntity>>();
-    
+
     protected static final int RETRIES = 12;
 
     protected final PassClient client = PassClientFactory.getPassClient();
-    
+
     protected final SubmissionStatusService statusService = new SubmissionStatusService(client);
-    
+
     protected final NihmsPassClientService nihmsPassClientService = new NihmsPassClientService(client);
-    
+
     protected static String path = TransformAndLoadSmokeIT.class.getClassLoader().getResource("data").getPath();
-    
+
     static {
         if (System.getProperty("pass.fedora.baseurl") == null) {
             System.setProperty("pass.fedora.baseurl", "http://localhost:8080/fcrepo/rest/");
@@ -96,35 +91,37 @@ public abstract class NihmsSubmissionEtlITBase {
     }
 
     protected static CompletedPublicationsCache completedPubsCache;
-    
+
     @Before
     public void startup() {
-        String cachepath = FileUtil.getCurrentDirectory() +"/cache/compliant-cache.data";
+        String cachepath = FileUtil.getCurrentDirectory() + "/cache/compliant-cache.data";
         System.setProperty("nihmsetl.loader.cachepath", cachepath);
         completedPubsCache = CompletedPublicationsCache.getInstance();
     }
-    
+
     @After
     public void cleanup() {
         completedPubsCache.clear();
-        
+
         nihmsPassClientService.clearCache();
-        
-        //clean out all data from the following (note Grant URIs added to createdUris the createGrant() method as we don't want to delete pre-loaded data)
+
+        //clean out all data from the following (note Grant URIs added to createdUris the createGrant() method as we
+        // don't want to delete pre-loaded data)
         putAllInCreatedUris(client.findAllByAttribute(Submission.class, "@type", "Submission"), Submission.class);
         putAllInCreatedUris(client.findAllByAttribute(Publication.class, "@type", "Publication"), Publication.class);
-        putAllInCreatedUris(client.findAllByAttribute(RepositoryCopy.class, "@type", "RepositoryCopy"), RepositoryCopy.class);
+        putAllInCreatedUris(client.findAllByAttribute(RepositoryCopy.class, "@type", "RepositoryCopy"),
+                            RepositoryCopy.class);
         putAllInCreatedUris(client.findAllByAttribute(Deposit.class, "@type", "Deposit"), Deposit.class);
-                
+
         //need to log fail if this doesn't work as it could mess up re-testing if data isn't cleaned out
         try {
             URI uriCheck = null;
-            
-            if (createdUris.size()>0) {
-                for (URI uri:createdUris.keySet()) {
-                  client.deleteResource(uri);
-                  uriCheck = uri;
-                }          
+
+            if (createdUris.size() > 0) {
+                for (URI uri : createdUris.keySet()) {
+                    client.deleteResource(uri);
+                    uriCheck = uri;
+                }
                 final URI finalUriCheck = uriCheck;
                 attempt(RETRIES, () -> {
                     final URI uri = client.findByAttribute(createdUris.get(finalUriCheck), "@id", finalUriCheck);
@@ -132,23 +129,20 @@ public abstract class NihmsSubmissionEtlITBase {
                 });
                 createdUris.clear();
             }
-               
+
         } catch (Exception ex) {
             fail("Could not clean up from test, this may interfere with results of other tests");
         }
     }
-    
-    
+
     private void putAllInCreatedUris(Set<URI> uris, Class<? extends PassEntity> cls) {
-        if (uris!=null) {
+        if (uris != null) {
             for (URI uri : uris) {
                 createdUris.put(uri, cls);
             }
         }
     }
-    
-    
-    
+
     protected URI createGrant(String awardNumber, String userId) throws Exception {
         Grant grant = new Grant();
         grant.setAwardNumber(awardNumber);
@@ -166,11 +160,11 @@ public abstract class NihmsSubmissionEtlITBase {
         createdUris.put(uri, Grant.class);
         return uri;
     }
-    
+
     /**
      * Try invoking a runnable until it succeeds.
      *
-     * @param times The number of times to run
+     * @param times  The number of times to run
      * @param thingy The runnable.
      */
     void attempt(final int times, final Runnable thingy) {
@@ -179,13 +173,12 @@ public abstract class NihmsSubmissionEtlITBase {
             return null;
         });
     }
-    
 
     /**
      * Try invoking a callable until it succeeds.
      *
      * @param times Number of times to try
-     * @param it the thing to call.
+     * @param it    the thing to call.
      * @return the result from the callable, when successful.
      */
     <T> T attempt(final int times, final Callable<T> it) {
@@ -209,15 +202,11 @@ public abstract class NihmsSubmissionEtlITBase {
         throw new RuntimeException("Failed executing task", caught);
     }
 
-    
-    
     protected void setMockPMRecord(String pmid) throws IOException {
         String json = IOUtils.toString(getClass().getClassLoader().getResourceAsStream("pmidrecord.json"));
         JSONObject rootObj = new JSONObject(json);
-        PubMedEntrezRecord pmr = new PubMedEntrezRecord(rootObj);        
+        PubMedEntrezRecord pmr = new PubMedEntrezRecord(rootObj);
         when(mockPmidLookup.retrievePubMedRecord(eq(pmid))).thenReturn(pmr);
     }
-    
-    
- 
+
 }

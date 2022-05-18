@@ -16,12 +16,12 @@
 package org.dataconservancy.pass.client.nihms.cache;
 
 import java.net.URI;
-
 import java.util.HashMap;
 
 /**
  * Caches publicationId and repositoryCopyId mapping for easy lookup
  * Important: includes RepositoryCopies for NIHMS records only
+ *
  * @author Karen Hanson
  */
 public class NihmsRepositoryCopyIdCache {
@@ -34,23 +34,25 @@ public class NihmsRepositoryCopyIdCache {
     }
 
     public static synchronized NihmsRepositoryCopyIdCache getInstance() {
-      if (repositoryCopySpace == null) {
-          repositoryCopySpace = new NihmsRepositoryCopyIdCache();
-      }
-      return repositoryCopySpace;
+        if (repositoryCopySpace == null) {
+            repositoryCopySpace = new NihmsRepositoryCopyIdCache();
+        }
+        return repositoryCopySpace;
     }
-    
+
     /**
-     * Add publicationId to repositoryCopyId mapping 
-     * @param publicationId the publication id
+     * Add publicationId to repositoryCopyId mapping
+     *
+     * @param publicationId    the publication id
      * @param repositoryCopyId the repository copy it
      */
     public synchronized void put(URI publicationId, URI repositoryCopyId) {
         nihmsRepoCopyCache.put(publicationId, repositoryCopyId);
     }
-    
+
     /**
      * Retrieve RepositoryCopyId by publicationId
+     *
      * @param publicationId the publication id
      * @return the repository copy id
      */
@@ -60,6 +62,7 @@ public class NihmsRepositoryCopyIdCache {
 
     /**
      * Remove a publicationId to repositoryCopyId mapping from cache
+     *
      * @param publicationId the publication id
      */
     public synchronized void remove(URI publicationId) {
@@ -68,6 +71,7 @@ public class NihmsRepositoryCopyIdCache {
 
     /**
      * Get number of cached mappings
+     *
      * @return the cache size
      */
     public synchronized int size() {
@@ -80,5 +84,5 @@ public class NihmsRepositoryCopyIdCache {
     public synchronized void clear() {
         nihmsRepoCopyCache.clear();
     }
-    
+
 }

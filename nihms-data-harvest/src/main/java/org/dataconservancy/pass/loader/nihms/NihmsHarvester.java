@@ -15,14 +15,14 @@
  */
 package org.dataconservancy.pass.loader.nihms;
 
-import java.io.File;
+import static org.dataconservancy.pass.loader.nihms.util.ProcessingUtil.nullOrEmpty;
 
+import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
-
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -41,10 +41,7 @@ import org.joda.time.format.DateTimeFormatter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.dataconservancy.pass.loader.nihms.util.ProcessingUtil.nullOrEmpty;
-
 /**
- *
  * @author Karen Hanson
  */
 public class NihmsHarvester {
@@ -67,37 +64,42 @@ public class NihmsHarvester {
         this.downloadDirectoryPath = FileUtil.getDataDirectory().toPath();
         this.urlBuilder = new UrlBuilder();
 
-        if (downloadDirectoryPath==null) {throw new RuntimeException("The harvester's downloadDirectory cannot be empty");}
+        if (downloadDirectoryPath == null) {
+            throw new RuntimeException("The harvester's downloadDirectory cannot be empty");
+        }
 
         //if download directory doesn't already exist attempt to make it
         if (!Files.isDirectory(downloadDirectoryPath)) {
-            LOG.warn("Download directory does not exist at path provided. A new directory will be created at path: {}", downloadDirectoryPath);
+            LOG.warn("Download directory does not exist at path provided. A new directory will be created at path: {}",
+                     downloadDirectoryPath);
             try {
                 FileUtils.forceMkdir(downloadDirectoryPath.toFile());
             } catch (IOException e) {
                 throw new RuntimeException("A new download directory could not be created at path: " +
-                        downloadDirectoryPath + ". Please provide a valid path for the downloads", e);
+                                           downloadDirectoryPath + ". Please provide a valid path for the downloads",
+                                           e);
             }
         }
 
         okHttp = new OkHttpClient.Builder()
-                .connectTimeout(NihmsHarvesterConfig.getHttpConnectTimeoutMs(), TimeUnit.MILLISECONDS)
-                .readTimeout(NihmsHarvesterConfig.getHttpReadTimeoutMs(), TimeUnit.MILLISECONDS)
-                .build();
+            .connectTimeout(NihmsHarvesterConfig.getHttpConnectTimeoutMs(), TimeUnit.MILLISECONDS)
+            .readTimeout(NihmsHarvesterConfig.getHttpReadTimeoutMs(), TimeUnit.MILLISECONDS)
+            .build();
     }
 
     /**
      * Retrieve files from NIHMS based on status list and startDate provided
      *
      * @param statusesToDownload list of {@code NihmsStatus} types to download from the NIHMS website
-     * @param startDate formatted as {@code yyyy-mm}, can be null to default to 1 year prior to harvest date
+     * @param startDate          formatted as {@code yyyy-mm}, can be null to default to 1 year prior to harvest date
      */
     public void harvest(Set<NihmsStatus> statusesToDownload, String startDate) {
         if (nullOrEmpty(statusesToDownload)) {
             throw new RuntimeException("statusesToDownload list cannot be empty");
         }
         if (!validStartDate(startDate)) {
-            throw new RuntimeException(String.format("The startDate %s is not valid. The date must be formatted as mm-yyyy", startDate));
+            throw new RuntimeException(
+                String.format("The startDate %s is not valid. The date must be formatted as mm-yyyy", startDate));
         }
 
         try {
@@ -141,16 +143,16 @@ public class NihmsHarvester {
     private void download(URL url, File outputFile, NihmsStatus status) throws IOException, InterruptedException {
         LOG.debug("Retrieving: {}", url);
         try (Response res = okHttp
-                .newCall(new Request.Builder()
-                        .get()
-                        .url(url)
-                        .build())
-                .execute();
+            .newCall(new Request.Builder()
+                         .get()
+                         .url(url)
+                         .build())
+            .execute();
              FileOutputStream out = new FileOutputStream(outputFile)) {
 
             if (!res.isSuccessful()) {
                 throw new RuntimeException(String.format("Error retrieving %s (HTTP status: %s): %s",
-                        url, res.code(), res.message()));
+                                                         url, res.code(), res.message()));
             }
 
             IOUtils.copy(res.body().byteStream(), out);
@@ -160,7 +162,9 @@ public class NihmsHarvester {
     }
 
     /**
-     * null or empty are OK for start date, but a badly formatted date that does not have the format mm-yyyy should return false
+     * null or empty are OK for start date, but a badly formatted date that does not have the format mm-yyyy should
+     * return false
+     *
      * @param startDate true if valid start date (empty or formatted mm-yyyy)
      */
     public static boolean validStartDate(String startDate) {
@@ -170,7 +174,8 @@ public class NihmsHarvester {
     private File newFile(NihmsStatus status) {
         DateTimeFormatter fmt = DateTimeFormat.forPattern("yyyyMMddHHmmss");
         String timeStamp = fmt.print(new DateTime());
-        String newFilePath = downloadDirectoryPath.toString() + "/" + status.toString() + "_nihmspubs_" + timeStamp + ".csv";
+        String newFilePath = downloadDirectoryPath.toString() + "/" + status.toString() + "_nihmspubs_"
+                             + timeStamp + ".csv";
         return new File(newFilePath);
     }
 
