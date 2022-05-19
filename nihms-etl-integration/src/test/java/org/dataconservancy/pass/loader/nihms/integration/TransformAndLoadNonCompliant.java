@@ -163,7 +163,7 @@ public class TransformAndLoadNonCompliant extends NihmsSubmissionEtlITBase {
             assertNotNull(uri);
         });
 
-        //now we have an existing publication, deposit, and submission for same grant/repo... 
+        //now we have an existing publication, deposit, and submission for same grant/repo...
         //do transform/load to make sure we get a stalled repocopy and the deposit record is updated
         NihmsPublication pub = newNonCompliantStalledNihmsPub();
         NihmsTransformLoadService transformLoadService = new NihmsTransformLoadService(nihmsPassClientService,
@@ -239,7 +239,7 @@ public class TransformAndLoadNonCompliant extends NihmsSubmissionEtlITBase {
             submissionUri = uri;
         });
 
-        //now we have an existing publication, submission for same user/publication... 
+        //now we have an existing publication, submission for same user/publication...
         //do transform/load to make sure we get an updated submission that includes grant/repo
         NihmsPublication pub = newNonCompliantNihmsPub();
         NihmsTransformLoadService transformLoadService = new NihmsTransformLoadService(nihmsPassClientService,

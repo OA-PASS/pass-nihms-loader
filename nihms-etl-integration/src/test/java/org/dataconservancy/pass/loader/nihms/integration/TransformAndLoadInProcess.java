@@ -162,7 +162,7 @@ public class TransformAndLoadInProcess extends NihmsSubmissionEtlITBase {
             assertNotNull(uri);
         });
 
-        //now we have an existing publication, deposit, and submission for same grant/repo... 
+        //now we have an existing publication, deposit, and submission for same grant/repo...
         //do transform/load to make sure we get a repocopy and the deposit record is updated
         NihmsPublication pub = newInProcessNihmsPub();
         NihmsTransformLoadService transformLoadService = new NihmsTransformLoadService(nihmsPassClientService,
