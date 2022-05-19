@@ -1,6 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>org.eclipse.pass</groupId>
+    <artifactId>eclipse-pass-parent</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
+  </parent>
 
   <groupId>org.dataconservancy.pass</groupId>
   <artifactId>pass-nihms-submission-etl</artifactId>
@@ -92,7 +99,7 @@
     <maven-gpg-plugin.version>1.6</maven-gpg-plugin.version>
     <maven-javadoc-plugin.version>3.0.1</maven-javadoc-plugin.version>
     <maven-release-plugin.version>2.5.3</maven-release-plugin.version>
-  
+
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <junit.version>4.12</junit.version>
     <http-client.version>4.5.2</http-client.version>
@@ -108,7 +115,7 @@
     <commons-io.version>2.6</commons-io.version>
     <okhttp.version>3.14.1</okhttp.version>
   </properties>
-  
+
   <modules>
     <module>nihms-data-harvest</module>
     <module>nihms-data-harvest-cli</module>
@@ -121,7 +128,7 @@
     <module>nihms-etl-util</module>
   </modules>
 
-  <build>    
+  <build>
     <pluginManagement>
       <plugins>
         <plugin>
@@ -146,48 +153,47 @@
           </executions>
         </plugin>
 
-
         <plugin>
-           <groupId>org.apache.maven.plugins</groupId>
-           <artifactId>maven-deploy-plugin</artifactId>
-           <version>${maven.deploy.plugin.version}</version>
-           <configuration>
-             <retryFailedDeploymentCount>5</retryFailedDeploymentCount>
-           </configuration>
-           <!-- See https://jira.codehaus.org/browse/WAGON-393 -->
-           <dependencies>
-             <dependency>
-               <groupId>org.apache.maven.wagon</groupId>
-               <artifactId>wagon-ssh</artifactId>
-               <version>${maven.wagon.ssh.version}</version>
-             </dependency>
-           </dependencies>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-deploy-plugin</artifactId>
+          <version>${maven.deploy.plugin.version}</version>
+          <configuration>
+            <retryFailedDeploymentCount>5</retryFailedDeploymentCount>
+          </configuration>
+          <!-- See https://jira.codehaus.org/browse/WAGON-393 -->
+          <dependencies>
+            <dependency>
+              <groupId>org.apache.maven.wagon</groupId>
+              <artifactId>wagon-ssh</artifactId>
+              <version>${maven.wagon.ssh.version}</version>
+            </dependency>
+          </dependencies>
         </plugin>
-    
+
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-surefire-plugin</artifactId>
           <version>${maven-surefire-plugin.version}</version>
         </plugin>
-    
+
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-shade-plugin</artifactId>
           <version>${maven-shade-plugin.version}</version>
         </plugin>
-        
+
         <plugin>
           <groupId>io.fabric8</groupId>
           <artifactId>docker-maven-plugin</artifactId>
           <version>${docker-maven-plugin.version}</version>
         </plugin>
-        
+
         <plugin>
           <groupId>org.codehaus.mojo</groupId>
           <artifactId>build-helper-maven-plugin</artifactId>
           <version>${build-helper-maven-plugin.version}</version>
         </plugin>
-        
+
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-failsafe-plugin</artifactId>
@@ -238,7 +244,7 @@
             <releaseProfiles>release</releaseProfiles>
           </configuration>
         </plugin>
-        
+
       </plugins>
     </pluginManagement>
 
@@ -267,61 +273,61 @@
         <artifactId>pass-client-api</artifactId>
         <version>${pass-client.version}</version>
       </dependency>
-      
+
       <dependency>
         <groupId>org.dataconservancy.pass</groupId>
         <artifactId>pass-model</artifactId>
         <version>${pass-client.version}</version>
       </dependency>
-      
+
       <dependency>
         <groupId>org.dataconservancy.pass</groupId>
         <artifactId>pass-model-nihms</artifactId>
         <version>${pass-client.version}</version>
       </dependency>
-      
+
       <dependency>
         <groupId>org.dataconservancy.pass</groupId>
         <artifactId>pass-status-service</artifactId>
         <version>${pass-client.version}</version>
       </dependency>
-      
+
       <dependency>
         <groupId>org.dataconservancy.pass</groupId>
         <artifactId>pass-data-client</artifactId>
         <version>${pass-client.version}</version>
       </dependency>
-      
+
       <dependency>
         <groupId>org.slf4j</groupId>
         <artifactId>slf4j-api</artifactId>
         <version>${slf4j.version}</version>
       </dependency>
-      
+
       <dependency>
         <groupId>org.json</groupId>
         <artifactId>json</artifactId>
         <version>${org-json.version}</version>
       </dependency>
-      
+
       <dependency>
         <groupId>org.apache.httpcomponents</groupId>
         <artifactId>httpclient</artifactId>
         <version>${http-client.version}</version>
       </dependency>
-      
+
       <dependency>
         <groupId>commons-io</groupId>
         <artifactId>commons-io</artifactId>
         <version>${commons-io.version}</version>
       </dependency>
-      
+
       <dependency>
         <groupId>org.apache.commons</groupId>
         <artifactId>commons-csv</artifactId>
         <version>${commons-csv.version}</version>
-     </dependency>
-      
+      </dependency>
+
       <dependency>
         <groupId>args4j</groupId>
         <artifactId>args4j</artifactId>
@@ -334,14 +340,14 @@
         <version>${junit.version}</version>
         <scope>test</scope>
       </dependency>
-    
+
       <dependency>
         <groupId>org.mockito</groupId>
         <artifactId>mockito-all</artifactId>
         <version>${mockito.version}</version>
         <scope>test</scope>
       </dependency>
-      
+
       <dependency>
         <groupId>ch.qos.logback</groupId>
         <artifactId>logback-classic</artifactId>

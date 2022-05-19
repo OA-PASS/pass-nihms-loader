@@ -22,24 +22,21 @@
 
   </appender>
 
-
-
   <logger name="org.fcrepo" additivity="false" level="WARN">
 
-    <appender-ref ref="STDOUT" />
+    <appender-ref ref="STDOUT"/>
 
   </logger>
 
   <logger name="org.dataconservancy" additivity="false" level="INFO">
 
-    <appender-ref ref="STDOUT" />
+    <appender-ref ref="STDOUT"/>
 
   </logger>
 
-
   <root additivity="false" level="WARN">
 
-    <appender-ref ref="STDOUT" />
+    <appender-ref ref="STDOUT"/>
 
   </root>
 

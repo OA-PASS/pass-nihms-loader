@@ -18,21 +18,21 @@
 
 package org.dataconservancy.pass.loader.nihms.integration;
 
+import static org.dataconservancy.pass.client.nihms.NihmsPassClientService.ISSNS_FLD;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+
+import java.net.URI;
+import java.util.Arrays;
+import java.util.Objects;
+
 import org.dataconservancy.pass.client.PassClient;
 import org.dataconservancy.pass.client.PassClientDefault;
 import org.dataconservancy.pass.client.nihms.NihmsPassClientService;
 import org.dataconservancy.pass.model.Journal;
 import org.junit.Before;
 import org.junit.Test;
-
-import java.net.URI;
-import java.util.Arrays;
-import java.util.Objects;
-
-import static org.dataconservancy.pass.client.nihms.NihmsPassClientService.ISSNS_FLD;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
 
 public class NihmsPassClientServiceIT {
 

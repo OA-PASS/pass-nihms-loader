@@ -1,5 +1,6 @@
 <?xml version="1.0"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <parent>
     <groupId>org.dataconservancy.pass</groupId>
@@ -76,9 +77,13 @@
                   <FCREPO_STOMP_PORT>${FCREPO_STOMP_PORT}</FCREPO_STOMP_PORT>
                   <FCREPO_JMS_BASEURL>http://${FCREPO_HOST}:${FCREPO_PORT}/fcrepo/rest</FCREPO_JMS_BASEURL>
                   <FCREPO_ACTIVEMQ_CONFIGURATION>classpath:/activemq-queue.xml</FCREPO_ACTIVEMQ_CONFIGURATION>
-                  <COMPACTION_URI>https://oa-pass.github.io/pass-data-model/src/main/resources/context-3.1.jsonld</COMPACTION_URI>
-                  <COMPACTION_PRELOAD_URI_PASS_STATIC>https://oa-pass.github.io/pass-data-model/src/main/resources/context-3.1.jsonld</COMPACTION_PRELOAD_URI_PASS_STATIC>
-                  <COMPACTION_PRELOAD_FILE_PASS_STATIC>/usr/local/tomcat/lib/context-3.1.jsonld</COMPACTION_PRELOAD_FILE_PASS_STATIC>
+                  <COMPACTION_URI>https://oa-pass.github.io/pass-data-model/src/main/resources/context-3.1.jsonld
+                  </COMPACTION_URI>
+                  <COMPACTION_PRELOAD_URI_PASS_STATIC>
+                    https://oa-pass.github.io/pass-data-model/src/main/resources/context-3.1.jsonld
+                  </COMPACTION_PRELOAD_URI_PASS_STATIC>
+                  <COMPACTION_PRELOAD_FILE_PASS_STATIC>/usr/local/tomcat/lib/context-3.1.jsonld
+                  </COMPACTION_PRELOAD_FILE_PASS_STATIC>
                 </env>
                 <ports>
                   <port>${FCREPO_PORT}:${FCREPO_PORT}</port>
@@ -178,7 +183,6 @@
         </executions>
       </plugin>
 
-
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-failsafe-plugin</artifactId>
@@ -202,13 +206,13 @@
   </build>
 
   <dependencies>
-  
+
     <dependency>
-	    <groupId>org.dataconservancy.pass</groupId>
-	    <artifactId>nihms-data-transform-load-cli</artifactId>
-	    <version>${project.parent.version}</version>
-	</dependency>
-  
+      <groupId>org.dataconservancy.pass</groupId>
+      <artifactId>nihms-data-transform-load-cli</artifactId>
+      <version>${project.parent.version}</version>
+    </dependency>
+
     <dependency>
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-api</artifactId>
@@ -219,7 +223,7 @@
       <artifactId>junit</artifactId>
       <scope>test</scope>
     </dependency>
-    
+
     <dependency>
       <groupId>org.mockito</groupId>
       <artifactId>mockito-all</artifactId>

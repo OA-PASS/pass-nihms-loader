@@ -1,5 +1,6 @@
 <?xml version="1.0"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <parent>
     <groupId>org.dataconservancy.pass</groupId>
@@ -11,61 +12,61 @@
 
   <dependencies>
     <dependency>
-	    <groupId>org.dataconservancy.pass</groupId>
-	    <artifactId>entrez-pmid-lookup</artifactId>
-	    <version>${project.parent.version}</version>
-	</dependency>
-  
+      <groupId>org.dataconservancy.pass</groupId>
+      <artifactId>entrez-pmid-lookup</artifactId>
+      <version>${project.parent.version}</version>
+    </dependency>
+
     <dependency>
       <groupId>org.dataconservancy.pass</groupId>
       <artifactId>nihms-etl-util</artifactId>
-	  <version>${project.parent.version}</version>
+      <version>${project.parent.version}</version>
     </dependency>
-	
+
     <dependency>
-	  <groupId>org.dataconservancy.pass</groupId>
-	  <artifactId>nihms-etl-model</artifactId>
-	  <version>${project.parent.version}</version>
-	</dependency>   
-		
+      <groupId>org.dataconservancy.pass</groupId>
+      <artifactId>nihms-etl-model</artifactId>
+      <version>${project.parent.version}</version>
+    </dependency>
+
     <dependency>
-	    <groupId>org.dataconservancy.pass</groupId>
-	    <artifactId>pass-model</artifactId>
-	</dependency>
-		
+      <groupId>org.dataconservancy.pass</groupId>
+      <artifactId>pass-model</artifactId>
+    </dependency>
+
     <dependency>
-	    <groupId>org.dataconservancy.pass</groupId>
-	    <artifactId>pass-status-service</artifactId>
-	</dependency>
-		
+      <groupId>org.dataconservancy.pass</groupId>
+      <artifactId>pass-status-service</artifactId>
+    </dependency>
+
     <dependency>
-	    <groupId>org.apache.commons</groupId>
-	    <artifactId>commons-csv</artifactId>
-	</dependency>	
-	
+      <groupId>org.apache.commons</groupId>
+      <artifactId>commons-csv</artifactId>
+    </dependency>
+
     <dependency>
-	    <groupId>org.dataconservancy.pass</groupId>
-	    <artifactId>nihms-pass-client</artifactId>
-	    <version>${project.parent.version}</version>
-	</dependency>
-	
+      <groupId>org.dataconservancy.pass</groupId>
+      <artifactId>nihms-pass-client</artifactId>
+      <version>${project.parent.version}</version>
+    </dependency>
+
     <dependency>
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-api</artifactId>
     </dependency>
-    
+
     <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
       <scope>test</scope>
     </dependency>
-    
+
     <dependency>
       <groupId>org.mockito</groupId>
       <artifactId>mockito-all</artifactId>
       <scope>test</scope>
     </dependency>
-    
+
     <dependency>
       <groupId>ch.qos.logback</groupId>
       <artifactId>logback-classic</artifactId>

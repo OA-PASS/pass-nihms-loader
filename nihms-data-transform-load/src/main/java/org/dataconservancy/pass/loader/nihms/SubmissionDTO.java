@@ -24,25 +24,25 @@ import org.dataconservancy.pass.model.Submission;
 /**
  * Data transfer object to hold the various components of a NIHMS Submission up to the point of
  * update or create.
+ *
  * @author Karen Hanson
  */
 public class SubmissionDTO {
 
     private Submission submission = null;
-    
+
     private Publication publication = null;
-        
+
     private RepositoryCopy repositoryCopy = null;
-    
+
     private boolean updatePublication = false;
-    
+
     private boolean updateSubmission = false;
-    
+
     private boolean updateRepositoryCopy = false;
-    
+
     private URI grantId = null;
 
-    
     /**
      * @return the submission
      */
@@ -50,7 +50,6 @@ public class SubmissionDTO {
         return submission;
     }
 
-    
     /**
      * @param submission the submission to set
      */
@@ -58,7 +57,6 @@ public class SubmissionDTO {
         this.submission = submission;
     }
 
-    
     /**
      * @return the publication
      */
@@ -66,7 +64,6 @@ public class SubmissionDTO {
         return publication;
     }
 
-    
     /**
      * @param publication the publication to set
      */
@@ -81,14 +78,12 @@ public class SubmissionDTO {
         return repositoryCopy;
     }
 
-    
     /**
      * @param repositoryCopy the repositoryCopy to set
      */
     public void setRepositoryCopy(RepositoryCopy repositoryCopy) {
         this.repositoryCopy = repositoryCopy;
     }
-
 
     /**
      * @return the grantId
@@ -97,7 +92,6 @@ public class SubmissionDTO {
         return grantId;
     }
 
-
     /**
      * @param grantId the grantId to set
      */
@@ -105,7 +99,6 @@ public class SubmissionDTO {
         this.grantId = grantId;
     }
 
-    
     /**
      * @return updatePublication true if update should be performed
      */
@@ -113,7 +106,6 @@ public class SubmissionDTO {
         return updatePublication;
     }
 
-    
     /**
      * @param updatePublication the updatePublication to set
      */
@@ -121,7 +113,6 @@ public class SubmissionDTO {
         this.updatePublication = updatePublication;
     }
 
-    
     /**
      * @return updateSubmission true if update should be performed
      */
@@ -129,7 +120,6 @@ public class SubmissionDTO {
         return updateSubmission;
     }
 
-    
     /**
      * @param updateSubmission the updateSubmission to set
      */
@@ -137,7 +127,6 @@ public class SubmissionDTO {
         this.updateSubmission = updateSubmission;
     }
 
-    
     /**
      * @return updateRepositoryCopy true if update should be performed
      */
@@ -145,20 +134,18 @@ public class SubmissionDTO {
         return updateRepositoryCopy;
     }
 
-    
     /**
      * @return updateRepositoryCopy true if update should be performed
      */
     public boolean doUpdate() {
-        return (updateRepositoryCopy || updateSubmission  || updatePublication);
+        return (updateRepositoryCopy || updateSubmission || updatePublication);
     }
 
-    
     /**
      * @param updateRepositoryCopy the updateRepositoryCopy to set
      */
     public void setUpdateRepositoryCopy(boolean updateRepositoryCopy) {
         this.updateRepositoryCopy = updateRepositoryCopy;
     }
-    
+
 }

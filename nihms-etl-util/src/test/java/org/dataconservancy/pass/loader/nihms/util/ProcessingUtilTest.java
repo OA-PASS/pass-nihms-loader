@@ -15,20 +15,19 @@
  */
 package org.dataconservancy.pass.loader.nihms.util;
 
-import org.junit.Test;
+import static org.junit.Assert.assertEquals;
 
 import org.joda.time.DateTime;
-
-import static org.junit.Assert.assertEquals;
+import org.junit.Test;
 
 /**
  * Tests for ValidateUtil
+ *
  * @author Karen Hanson
  */
 public class ProcessingUtilTest {
 
-
-    /** 
+    /**
      * Check formatDate util is working to convert date as formatted in NIHMS spreadsheet to DateTime
      */
     @Test
@@ -42,7 +41,5 @@ public class ProcessingUtilTest {
         assertEquals(0, newDate.getSecondOfMinute());
         assertEquals(0, newDate.getMillisOfSecond());
     }
-    
-    
-    
+
 }

@@ -18,12 +18,12 @@
 
 package org.dataconservancy.pass.loader.nihms;
 
-import com.damnhandy.uri.template.UriTemplate;
-
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Collections;
 import java.util.Map;
+
+import com.damnhandy.uri.template.UriTemplate;
 
 public class UrlBuilder {
 
@@ -59,12 +59,12 @@ public class UrlBuilder {
             mergedParams.putAll(params);
 
             return new URL(UriTemplate.fromTemplate(TEMPLATE)
-                    .set("scheme", NihmsHarvesterConfig.getApiScheme())
-                    .set("host", NihmsHarvesterConfig.getApiHost())
-                    .set("path", NihmsHarvesterConfig.getApiPath())
-                    .set("type", type.getCode())
-                    .set("params", mergedParams)
-                    .expand());
+                                      .set("scheme", NihmsHarvesterConfig.getApiScheme())
+                                      .set("host", NihmsHarvesterConfig.getApiHost())
+                                      .set("path", NihmsHarvesterConfig.getApiPath())
+                                      .set("type", type.getCode())
+                                      .set("params", mergedParams)
+                                      .expand());
         } catch (MalformedURLException e) {
             throw new RuntimeException(e.getMessage(), e);
         }

@@ -19,21 +19,22 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-
 import java.net.URI;
 import java.net.URISyntaxException;
-
 import java.util.Properties;
 
 /**
- *
  * @author Karen Hanson
  */
 public class ConfigUtil {
 
-    private static final String NIHMS_REPOSITORY_URI_KEY = "nihmsetl.repository.uri"; 
+    private ConfigUtil() {
+        //never called
+    }
+
+    private static final String NIHMS_REPOSITORY_URI_KEY = "nihmsetl.repository.uri";
     private static final String NIHMS_REPOSITORY_URI_DEFAULT = "https://example.com/fedora/repositories/1";
-                
+
     /**
      * Retrieve property from a system property or renvironment variable or set to default
      * <p>
@@ -46,7 +47,7 @@ public class ConfigUtil {
      * <li>Use the default of none others match</li>
      * </ol>
      *
-     * @param key - property/variable name in property-normal form (period separators, ideally all lowercas)
+     * @param key          - property/variable name in property-normal form (period separators, ideally all lowercas)
      * @param defaultValue default value for the key if it does not exist as a system property or environment variable
      * @return the property value
      */
@@ -56,42 +57,44 @@ public class ConfigUtil {
 
     static String toEnvName(String name) {
         return name.toUpperCase().replace('.', '_');
-    }    
-    
-    
+    }
+
     /**
      * Retrieves the NIHMS Repository URI based on property key
+     *
      * @return the NIHMS repository URI
      */
     public static URI getNihmsRepositoryUri() {
         try {
             return new URI(ConfigUtil.getSystemProperty(NIHMS_REPOSITORY_URI_KEY, NIHMS_REPOSITORY_URI_DEFAULT));
         } catch (URISyntaxException e) {
-            throw new RuntimeException("NIHMS repository property is not a valid URI, please check the nihms.pass.uri property is populated correctly.", e);
+            throw new RuntimeException(
+                "NIHMS repository property is not a valid URI, please check the nihms.pass.uri property is populated " +
+                "correctly.",
+                e);
         }
     }
 
-    
     /**
      * This method processes a plain text properties file and returns a {@code Properties} object
-     * 
+     *
      * @param propertiesFile - the properties {@code File} to be read
      * @return the Properties object derived from the supplied {@code File}
      */
-    public static Properties loadProperties(File propertiesFile)  {
+    public static Properties loadProperties(File propertiesFile) {
         Properties properties = new Properties();
         String resource;
-        try{
+        try {
             resource = propertiesFile.getCanonicalPath();
         } catch (IOException e) {
             throw new RuntimeException("Could not open configuration file, check configuration path.", e);
         }
-        try(InputStream resourceStream = new FileInputStream(resource)){
+        try (InputStream resourceStream = new FileInputStream(resource)) {
             properties.load(resourceStream);
         } catch (IOException e) {
             throw new RuntimeException("Could not open configuration file, check configuration path.", e);
         }
         return properties;
     }
-    
+
 }
