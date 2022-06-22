@@ -28,9 +28,13 @@ jobs:
           path: ~/.m2
           key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
           restore-keys: ${{ runner.os }}-m2
-      - name: "Run unit & integration tests"
+      - name: "docker ps"
         run: docker ps
+      - name: "Delete cached docker images, if an issue?"
         run: docker image prune -fa
+      - name: "Delete cached docker containers, if a thing?"
         run: docker container prune -f
+      - name: "Get docker version"
         run: docker version
+      - name: "Run unit & integration tests"
         run: mvn -V -ntp verify --file pom.xml
