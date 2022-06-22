@@ -26,7 +26,7 @@ jobs:
         uses: actions/cache@v2
         with:
           path: ~/.m2
-          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
-          restore-keys: ${{ runner.os }}-m2
+          key: ${{ runner.os }}-m4-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-m4
       - name: "Run unit & integration tests"
-        run: mvn -V -ntp clean verify --file pom.xml
+        run: mvn -V -ntp verify --file pom.xml
