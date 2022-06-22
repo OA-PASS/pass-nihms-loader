@@ -14,7 +14,7 @@ jobs:
 
   run-tests:
     name: "Run Unit & Integration Tests"
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-latest
     steps:
       - name: "Checkout the repository"
         uses: actions/checkout@v2
@@ -28,8 +28,6 @@ jobs:
           path: ~/.m2
           key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
           restore-keys: ${{ runner.os }}-m2
-      - name: "docker ps"
-        run: docker ps
       - name: "Delete cached docker images, if an issue?"
         run: docker image prune -fa
       - name: "Delete cached docker containers, if a thing?"
