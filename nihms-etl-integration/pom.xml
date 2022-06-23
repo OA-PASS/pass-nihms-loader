@@ -106,6 +106,32 @@
               </run>
             </image>
             <image>
+              <alias>elasticsearch</alias>
+              <name>docker.elastic.co/elasticsearch/elasticsearch-oss:6.2.3</name>
+              <run>
+                <namingStrategy>alias</namingStrategy>
+                <env>
+                  <discovery.type>single-node</discovery.type>
+                  <bootstrap.memory_lock>true</bootstrap.memory_lock>
+                  <ES_JAVA_OPTS>-Xms512m -Xmx512m</ES_JAVA_OPTS>
+                </env>
+                <ports>
+                  <port>${ES_PORT}:9200</port>
+                </ports>
+                <network>
+                  <mode>custom</mode>
+                  <name>pass</name>
+                  <alias>elasticsearch</alias>
+                </network>
+                <wait>
+                  <http>
+                    <url>http://${ES_HOST}:${ES_PORT}/</url>
+                  </http>
+                  <time>120000</time>
+                </wait>
+              </run>
+            </image>
+            <image>
               <alias>indexer</alias>
               <name>oapass/indexer@sha256:e51092a9d433219d52207f1ec3f5ea7c652d51f516bcbe9434dae556b921546d</name>
               <run>
@@ -137,33 +163,6 @@
                 <wait>
                   <http>
                     <url>http://${ES_HOST}:${ES_PORT}/pass</url>
-                  </http>
-                  <time>120000</time>
-                </wait>
-              </run>
-            </image>
-
-            <image>
-              <alias>elasticsearch</alias>
-              <name>docker.elastic.co/elasticsearch/elasticsearch-oss:6.2.3</name>
-              <run>
-                <namingStrategy>alias</namingStrategy>
-                <env>
-                  <discovery.type>single-node</discovery.type>
-                  <bootstrap.memory_lock>true</bootstrap.memory_lock>
-                  <ES_JAVA_OPTS>-Xms512m -Xmx512m</ES_JAVA_OPTS>
-                </env>
-                <ports>
-                  <port>${ES_PORT}:9200</port>
-                </ports>
-                <network>
-                  <mode>custom</mode>
-                  <name>pass</name>
-                  <alias>elasticsearch</alias>
-                </network>
-                <wait>
-                  <http>
-                    <url>http://${ES_HOST}:${ES_PORT}/</url>
                   </http>
                   <time>120000</time>
                 </wait>
