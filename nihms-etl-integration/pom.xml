@@ -134,6 +134,12 @@
                   <name>pass</name>
                   <alias>indexer</alias>
                 </network>
+                <wait>
+                  <http>
+                    <url>http://${ES_HOST}:${ES_PORT}/pass</url>
+                  </http>
+                  <time>120000</time>
+                </wait>
               </run>
             </image>
 
