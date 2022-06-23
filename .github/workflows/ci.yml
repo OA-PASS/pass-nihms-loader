@@ -28,11 +28,5 @@ jobs:
           path: ~/.m3
           key: ${{ runner.os }}-m3-${{ hashFiles('**/pom.xml') }}
           restore-keys: ${{ runner.os }}-m3
-      - name: "Delete cached docker images, if an issue?"
-        run: docker image prune -fa
-      - name: "Delete cached docker containers, if a thing?"
-        run: docker container prune -f
-      - name: "Get docker version"
-        run: docker version
       - name: "Run unit & integration tests"
         run: mvn -V -ntp verify --file pom.xml
