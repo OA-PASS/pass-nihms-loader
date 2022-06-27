@@ -3,7 +3,7 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <parent>
-    <groupId>org.dataconservancy.pass</groupId>
+    <groupId>org.eclipse.pass</groupId>
     <artifactId>pass-nihms-submission-etl</artifactId>
     <version>1.4.2-SNAPSHOT</version>
   </parent>
@@ -66,7 +66,7 @@
           <images>
             <image>
               <alias>fcrepo</alias>
-              <name>oapass/fcrepo:4.7.5-3.2-5</name>
+              <name>oapass/fcrepo:4.7.5-3.5</name>
               <run>
                 <hostname>fcrepo</hostname>
                 <namingStrategy>alias</namingStrategy>
@@ -77,12 +77,12 @@
                   <FCREPO_STOMP_PORT>${FCREPO_STOMP_PORT}</FCREPO_STOMP_PORT>
                   <FCREPO_JMS_BASEURL>http://${FCREPO_HOST}:${FCREPO_PORT}/fcrepo/rest</FCREPO_JMS_BASEURL>
                   <FCREPO_ACTIVEMQ_CONFIGURATION>classpath:/activemq-queue.xml</FCREPO_ACTIVEMQ_CONFIGURATION>
-                  <COMPACTION_URI>https://oa-pass.github.io/pass-data-model/src/main/resources/context-3.1.jsonld
+                  <COMPACTION_URI>https://oa-pass.github.io/pass-data-model/src/main/resources/context-3.5.jsonld
                   </COMPACTION_URI>
                   <COMPACTION_PRELOAD_URI_PASS_STATIC>
-                    https://oa-pass.github.io/pass-data-model/src/main/resources/context-3.1.jsonld
+                    https://oa-pass.github.io/pass-data-model/src/main/resources/context-3.5.jsonld
                   </COMPACTION_PRELOAD_URI_PASS_STATIC>
-                  <COMPACTION_PRELOAD_FILE_PASS_STATIC>/usr/local/tomcat/lib/context-3.1.jsonld
+                  <COMPACTION_PRELOAD_FILE_PASS_STATIC>/usr/local/tomcat/lib/context-3.5.jsonld
                   </COMPACTION_PRELOAD_FILE_PASS_STATIC>
                 </env>
                 <ports>
@@ -133,7 +133,7 @@
             </image>
             <image>
               <alias>indexer</alias>
-              <name>oapass/indexer@sha256:e51092a9d433219d52207f1ec3f5ea7c652d51f516bcbe9434dae556b921546d</name>
+              <name>oapass/indexer:0.0.18-3.4-1</name>
               <run>
                 <namingStrategy>alias</namingStrategy>
                 <env>
@@ -213,7 +213,7 @@
   <dependencies>
 
     <dependency>
-      <groupId>org.dataconservancy.pass</groupId>
+      <groupId>org.eclipse.pass</groupId>
       <artifactId>nihms-data-transform-load-cli</artifactId>
       <version>${project.parent.version}</version>
     </dependency>
