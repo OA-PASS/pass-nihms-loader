@@ -14,7 +14,7 @@
 
   <name>PASS NIHMS Submission Extract-Transform-Load</name>
   <description>NIHMS ETL</description>
-  <url>https://github.com/OA-PASS/nihms-submission-etl</url>
+  <url>https://github.com/eclipse-pass/pass-nihms-loader</url>
   <licenses>
     <license>
       <name>The Apache Software License, Version 2.0</name>
@@ -62,9 +62,9 @@
   </modules>
 
   <scm>
-    <connection>scm:git:https://github.com/OA-PASS/nihms-submission-etl.git</connection>
-    <developerConnection>scm:git:https://github.com/OA-PASS/nihms-submission-etl.git</developerConnection>
-    <url>https://github.com/OA-PASS/nihms-submission-etl</url>
+    <connection>scm:git:https://github.com/eclipse-pass/pass-nihms-load.git</connection>
+    <developerConnection>scm:git:https://github.com/eclipse-pass/pass-nihms-loader.git</developerConnection>
+    <url>https://github.com/eclipse/pass-nihms-loader</url>
     <tag>HEAD</tag>
   </scm>
 
