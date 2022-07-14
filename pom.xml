@@ -69,14 +69,6 @@
   </scm>
 
   <properties>
-    <build-helper-maven-plugin.version>3.0.0</build-helper-maven-plugin.version>
-    <docker-maven-plugin.version>0.30.0</docker-maven-plugin.version>
-    <maven-failsafe-plugin.version>2.21.0</maven-failsafe-plugin.version>
-    <maven-surefire-plugin.version>2.22.2</maven-surefire-plugin.version>
-    <maven-source-plugin.version>3.0.1</maven-source-plugin.version>
-    <maven-shade-plugin.version>3.1.0</maven-shade-plugin.version>
-    <maven-javadoc-plugin.version>3.0.1</maven-javadoc-plugin.version>
-
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <junit.version>4.12</junit.version>
     <http-client.version>4.5.2</http-client.version>
