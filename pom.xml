@@ -72,7 +72,7 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <junit.version>4.12</junit.version>
     <http-client.version>4.5.2</http-client.version>
-    <org-json.version>20180130</org-json.version>
+    <org-json.version>20230227</org-json.version>
     <commons-csv.version>1.5</commons-csv.version>
     <slf4j.version>1.7.25</slf4j.version>
     <logback.version>1.2.3</logback.version>
